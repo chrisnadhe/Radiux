@@ -6,7 +6,7 @@ from app.core.dependencies import DbSession, SuperAdminUser
 from app.models.nas_ext import NasExt
 from app.schemas.nas import NasCreateRequest, NasListResponse, NasRead, NasUpdateRequest
 from app.schemas.vendor_profiles import VendorProfileRead
-from app.services import nas_service
+from app.services import audit_service, nas_service
 
 router = APIRouter(prefix="/nas", tags=["NAS"])
 
@@ -40,7 +40,7 @@ def _build_nas_read(nas_core: object, nas_ext: NasExt) -> NasRead:
 @router.get("", response_model=NasListResponse, summary="List NAS")
 async def list_nas(
     db: DbSession,
-    user_id: SuperAdminUser,
+    user: SuperAdminUser,
 ) -> NasListResponse:
     """List semua NAS yang visible untuk user."""
     pairs, total = await nas_service.list_nas(db, tenant_id=None)
@@ -59,11 +59,20 @@ async def list_nas(
 async def create_nas(
     data: NasCreateRequest,
     db: DbSession,
-    user_id: SuperAdminUser,
+    user: SuperAdminUser,
 ) -> NasRead:
     """Daftarkan NAS baru dengan enkripsi shared secret otomatis."""
     try:
         nas_core, nas_ext = await nas_service.create_nas(db, data)
+        await audit_service.log_action(
+            db=db,
+            action="CREATE_NAS",
+            user_id=user.id,
+            table_name="nas_ext",
+            record_id=nas_ext.id,
+            details={"nasname": data.nasname, "type": data.nas_type},
+            ip_address=None,
+        )
     except nas_service.NasNasnameConflictError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
     return _build_nas_read(nas_core, nas_ext)
@@ -73,7 +82,7 @@ async def create_nas(
 async def get_nas(
     nas_id: int,
     db: DbSession,
-    user_id: SuperAdminUser,
+    user: SuperAdminUser,
 ) -> NasRead:
     """Ambil detail NAS berdasarkan ID."""
     try:
@@ -88,11 +97,20 @@ async def update_nas(
     nas_id: int,
     data: NasUpdateRequest,
     db: DbSession,
-    user_id: SuperAdminUser,
+    user: SuperAdminUser,
 ) -> NasRead:
     """Update NAS — shared_secret baru akan dienkripsi otomatis."""
     try:
         nas_core, nas_ext = await nas_service.update_nas(db, nas_id, data)
+        await audit_service.log_action(
+            db=db,
+            action="UPDATE_NAS",
+            user_id=user.id,
+            table_name="nas_ext",
+            record_id=nas_ext.id,
+            details={"nasname": data.nasname, "type": getattr(nas_core, "type", "other")},
+            ip_address=None,
+        )
     except nas_service.NasNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     return _build_nas_read(nas_core, nas_ext)
@@ -102,10 +120,19 @@ async def update_nas(
 async def delete_nas(
     nas_id: int,
     db: DbSession,
-    user_id: SuperAdminUser,
+    user: SuperAdminUser,
 ) -> None:
     """Hapus NAS dari sistem (NasCore + NasExt)."""
     try:
         await nas_service.delete_nas(db, nas_id)
+        await audit_service.log_action(
+            db=db,
+            action="DELETE_NAS",
+            user_id=user.id,
+            table_name="nas_ext",
+            record_id=nas_id,
+            details={},
+            ip_address=None,
+        )
     except nas_service.NasNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e

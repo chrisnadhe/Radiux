@@ -13,7 +13,7 @@ from app.schemas.customers import (
     CustomerRead,
     CustomerUpdate,
 )
-from app.services import customer_service
+from app.services import audit_service, customer_service
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
@@ -72,6 +72,14 @@ async def create_customer(
 
     try:
         customer = await customer_service.create_customer(db, data)
+        await audit_service.log_action(
+            db=db,
+            action="CREATE_CUSTOMER",
+            user_id=user.id,
+            table_name="customers",
+            record_id=customer.id,
+            details={"username": data.username, "tenant_id": data.tenant_id},
+        )
     except customer_service.CustomerUsernameConflictError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
     return CustomerRead.model_validate(customer)
@@ -103,6 +111,14 @@ async def update_customer(
     tenant_id = _get_tenant_id(user)
     try:
         customer = await customer_service.update_customer(db, customer_id, data, tenant_id)
+        await audit_service.log_action(
+            db=db,
+            action="UPDATE_CUSTOMER",
+            user_id=user.id,
+            table_name="customers",
+            record_id=customer.id,
+            details={"username": customer.username},
+        )
     except customer_service.CustomerNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     return CustomerRead.model_validate(customer)
@@ -118,5 +134,13 @@ async def delete_customer(
     tenant_id = _get_tenant_id(user)
     try:
         await customer_service.delete_customer(db, customer_id, tenant_id)
+        await audit_service.log_action(
+            db=db,
+            action="DELETE_CUSTOMER",
+            user_id=user.id,
+            table_name="customers",
+            record_id=customer_id,
+            details={},
+        )
     except customer_service.CustomerNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e

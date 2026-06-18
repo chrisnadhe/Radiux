@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     admin_users,
+    audit,
     auth,
     billing,
     customers,
@@ -30,6 +31,7 @@ router.include_router(nas.router, tags=["NAS"])
 router.include_router(sessions.router, tags=["Sessions"])
 router.include_router(billing.router, tags=["Billing"])
 router.include_router(vouchers.router, tags=["Vouchers"])
+router.include_router(audit.router, tags=["Audit"])
 
 # ---------------------------------------------------------------------------
 # Domain routers — Phase 2: Multi-Vendor NAS

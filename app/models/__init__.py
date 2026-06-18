@@ -9,6 +9,7 @@ Import urutan penting untuk Alembic autogenerate:
 
 # Tabel ekstensi Radiux (dikelola Alembic)
 from app.models.admin_users import AdminRole, AdminUser  # noqa: F401
+from app.models.audit_logs import AuditLog  # noqa: F401
 from app.models.customers import Customer, CustomerStatus  # noqa: F401
 from app.models.invoices import Invoice, InvoiceStatus  # noqa: F401
 from app.models.nas_ext import NasExt  # noqa: F401
@@ -41,6 +42,7 @@ __all__ = [
     # Radiux extension
     "AdminRole",
     "AdminUser",
+    "AuditLog",
     "Customer",
     "CustomerStatus",
     "NasVendorProfile",

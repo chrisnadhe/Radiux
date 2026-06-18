@@ -10,7 +10,7 @@ Auth: cek cookie `access_token`. Jika invalid → redirect ke /login.
 import math
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, Query, Request
+from fastapi import APIRouter, Cookie, Depends, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from jose import JWTError
@@ -104,7 +104,46 @@ async def confirm_dialog(
 
 
 # ---------------------------------------------------------------------------
-# Customers HTMX partials
+# Component: Audit Table
+# ---------------------------------------------------------------------------
+@router.get("/audit/table", response_class=HTMLResponse, include_in_schema=False)
+async def audit_table(
+    request: Request,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    action: str | None = Query(None),
+    access_token: Annotated[str | None, Cookie()] = None,
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    user = await _get_ui_user(access_token, db)
+    if not user or not user.is_superadmin:
+        return HTMLResponse("<tr><td colspan='6'>Unauthorized</td></tr>")
+
+    from sqlalchemy import desc, func, select
+
+    from app.models.audit_logs import AuditLog
+
+    stmt = select(AuditLog)
+    if action:
+        stmt = stmt.where(AuditLog.action.ilike(f"%{action}%"))
+
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = await db.scalar(count_stmt) or 0
+
+    stmt = stmt.order_by(desc(AuditLog.created_at)).offset((page - 1) * page_size).limit(page_size)
+    logs = (await db.scalars(stmt)).all()
+
+    pages = math.ceil(total / page_size) if total else 0
+
+    return templates.TemplateResponse(
+        request=request,
+        name="audit/table.html",
+        context=_base_ctx(request, user, logs=logs, total=total, page=page, page_size=page_size, pages=pages),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Component: Customers Table
 # ---------------------------------------------------------------------------
 
 
