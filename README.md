@@ -105,7 +105,7 @@ Lihat [`PLAN.md`](./PLAN.md) untuk roadmap fase pengembangan lengkap, skema data
 
 ## Lisensi
 
-Belum ditentukan — tambahkan file `LICENSE` sesuai kebutuhan (MIT/AGPL umum dipakai untuk tooling ISP open-source).
+Proyek ini dilisensikan di bawah **Lisensi MIT** — lihat file [`LICENSE`](./LICENSE) untuk detail selengkapnya.
 
 ## Kontribusi
 
