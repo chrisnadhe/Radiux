@@ -18,6 +18,7 @@ from app.core.security import verify_token
 from app.models.admin_users import AdminUser
 from app.services import (
     customer_service,
+    monitoring_service,
     nas_service,
     package_service,
     vendor_profile_service,
@@ -162,6 +163,9 @@ async def dashboard(
     )
     packages, total_packages = await package_service.list_packages(db, tenant_id=None, include_inactive=False)
     nas_pairs, total_nas = await nas_service.list_nas(db, tenant_id=None)
+    
+    # Ambil sesi aktif untuk ringkasan
+    active_sessions = await monitoring_service.get_active_sessions(db, tenant_id=None)
 
     from types import SimpleNamespace
 
@@ -170,6 +174,7 @@ async def dashboard(
         active_customers=active_total,
         total_packages=total_packages,
         total_nas=total_nas,
+        active_sessions=len(active_sessions),
     )
 
     return templates.TemplateResponse(
@@ -285,4 +290,25 @@ async def vendor_profiles_page(
         request=request,
         name="vendor_profiles/index.html",
         context=_base_ctx(request, user, active_page="vendor_profiles", profiles=profiles),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Page: Monitoring
+# ---------------------------------------------------------------------------
+@app.get("/monitoring", response_class=HTMLResponse, include_in_schema=False)
+async def monitoring_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Halaman live monitoring."""
+    access_token = request.cookies.get("access_token")
+    user = await _resolve_user(access_token, db)
+    if user is None:
+        return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
+
+    return templates.TemplateResponse(
+        request=request,
+        name="monitoring/dashboard.html",
+        context=_base_ctx(request, user, active_page="monitoring"),
     )

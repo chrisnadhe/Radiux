@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, customers, nas, packages, vendor_profiles
+from app.api.v1 import auth, customers, monitoring, nas, packages, vendor_profiles
 
 router = APIRouter(prefix="/api/v1")
 
@@ -19,4 +19,9 @@ router.include_router(nas.router, tags=["NAS"])
 # ---------------------------------------------------------------------------
 router.include_router(vendor_profiles.router, tags=["Vendor Profiles"])
 
-# Phase 3+: monitoring, billing, vouchers, tenants
+# ---------------------------------------------------------------------------
+# Domain routers — Phase 3: Monitoring
+# ---------------------------------------------------------------------------
+router.include_router(monitoring.router, tags=["Monitoring"])
+
+# Phase 4+: coa, billing, vouchers, tenants

@@ -45,6 +45,7 @@ dependencies = [
     "bcrypt==4.3.0",
     "cryptography>=49.0.0",
     "email-validator>=2.3.0",
+    "sse-starlette>=3.4.4",
 ]
 
 [project.optional-dependencies]

@@ -32,6 +32,16 @@
             <span x-show="sidebarOpen" class="truncate">Dashboard</span>
         </a>
 
+        {# Monitoring #}
+        <a href="/monitoring"
+           class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                  {% if active_page == 'monitoring' %}nav-item-active text-brand-400{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
+            <svg class="flex-shrink-0 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            <span x-show="sidebarOpen" class="truncate">Live Monitoring</span>
+        </a>
+
         {# Customers #}
         <a href="/customers"
            class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors

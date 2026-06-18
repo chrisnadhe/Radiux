@@ -114,21 +114,26 @@
             </div>
         </div>
 
-        {# Phase 3 placeholder #}
+        {# Live Monitoring Widget #}
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-base font-semibold text-white">Sesi Aktif</h3>
-                <span class="badge" style="background: rgba(148,163,184,0.1); color: #94a3b8; border: 1px solid rgba(148,163,184,0.2);">Phase 3</span>
+                <h3 class="text-base font-semibold text-white">Live Monitoring</h3>
+                <span class="relative flex h-2.5 w-2.5">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
             </div>
-            <div class="flex flex-col items-center justify-center py-10 text-center">
-                <div class="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mb-3">
-                    <svg class="w-7 h-7 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            
+            <div class="flex flex-col items-center justify-center py-6 text-center">
+                <p class="text-4xl font-bold text-white">{{ stats.active_sessions }}</p>
+                <p class="text-sm font-medium text-slate-500 mt-1">Sesi Aktif Saat Ini</p>
+                
+                <a href="/monitoring" class="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-colors">
+                    Lihat Dashboard Real-time
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
-                </div>
-                <p class="text-sm font-medium text-slate-500">Real-time monitoring</p>
-                <p class="text-xs text-slate-600 mt-1">Tersedia di Phase 3 — Accounting & SSE</p>
+                </a>
             </div>
         </div>
 
