@@ -1,8 +1,9 @@
 """Pydantic schemas untuk Customer CRUD."""
 
 from datetime import datetime
+from typing import Any
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.models.customers import CustomerStatus
 
@@ -15,6 +16,16 @@ class CustomerBase(BaseModel):
     phone: str | None = Field(None, max_length=32)
     address: str | None = None
     notes: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def empty_to_none(cls, data: Any) -> Any:
+        """Konversi string kosong dari HTML form menjadi None."""
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if v == "":
+                    data[k] = None
+        return data
 
 
 class CustomerCreate(CustomerBase):
