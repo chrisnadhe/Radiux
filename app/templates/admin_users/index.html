@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Admin Users{% endblock %}
+{% block page_title %}Admin Users{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-5">
+
+    {# Page header #}
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-white">Admin Users</h2>
+            <p class="text-slate-400 text-sm mt-1">Kelola akun admin, reseller, dan operator.</p>
+        </div>
+        <button type="button"
+                hx-get="/ui/admin-users/form"
+                hx-target="#modal-container"
+                hx-swap="innerHTML"
+                class="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-brand-600/20">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Tambah User
+        </button>
+    </div>
+
+    {# Table container #}
+    <div id="table-container">
+        {% include "admin_users/_table.html" %}
+    </div>
+
+</div>
+{% endblock %}

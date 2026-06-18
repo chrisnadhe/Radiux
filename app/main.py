@@ -464,3 +464,39 @@ async def print_invoice_page(
         name="billing/print.html",
         context=_base_ctx(request, user, active_page="billing", invoice=invoice),
     )
+
+# ---------------------------------------------------------------------------
+# Page: Admin Users
+# ---------------------------------------------------------------------------
+@app.get("/admin-users", response_class=HTMLResponse, include_in_schema=False)
+async def admin_users_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Halaman manajemen Admin Users."""
+    access_token = request.cookies.get("access_token")
+    user = await _resolve_user(access_token, db)
+    if user is None:
+        return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
+        
+    from app.models.admin_users import AdminUser
+    from sqlalchemy import select
+    from sqlalchemy.orm import joinedload
+    
+    stmt = select(AdminUser).options(joinedload(AdminUser.tenant)).order_by(AdminUser.id.desc())
+    if not user.is_superadmin:
+        stmt = stmt.where(AdminUser.tenant_id == user.tenant_id)
+        
+    result = await db.scalars(stmt)
+    admin_users = result.all()
+    
+    # Ambil list tenant untuk dropdown form
+    from app.models.tenants import Tenant
+    tenants_result = await db.scalars(select(Tenant).order_by(Tenant.name))
+    tenants = tenants_result.all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_users/index.html",
+        context=_base_ctx(request, user, active_page="admin_users", admin_users=admin_users, tenants=tenants),
+    )

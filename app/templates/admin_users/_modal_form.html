@@ -1,0 +1,126 @@
+<div id="admin-user-modal"
+     class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto"
+     x-data="{ show: false }"
+     x-init="setTimeout(() => show = true, 50)"
+     x-show="show"
+     x-transition.opacity.duration.200ms>
+     
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl relative"
+         @click.away="show = false; setTimeout(() => $el.closest('#admin-user-modal').remove(), 200)"
+         x-show="show"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+         x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+         
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+            <h3 class="text-lg font-bold text-white">{% if admin_user %}Edit Admin User{% else %}Tambah Admin User{% endif %}</h3>
+            <button type="button" @click="show = false; setTimeout(() => $el.closest('#admin-user-modal').remove(), 200)" class="text-slate-400 hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <form {% if admin_user %}
+              hx-put="/api/v1/admin-users/{{ admin_user.id }}"
+              {% else %}
+              hx-post="/api/v1/admin-users"
+              {% endif %}
+              hx-ext="json-enc"
+              hx-on::after-request="if(event.detail.successful) { window.location.reload(); }"
+              class="p-6 space-y-5">
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
+                    <input type="text" name="username" required
+                           {% if admin_user %}value="{{ admin_user.username }}" readonly class="w-full px-3.5 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-400 text-sm focus:outline-none cursor-not-allowed"
+                           {% else %}class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder-slate-500"{% endif %}
+                           placeholder="username123" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+                    <input type="email" name="email" required
+                           {% if admin_user %}value="{{ admin_user.email }}"{% endif %}
+                           class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder-slate-500"
+                           placeholder="admin@isp.com" />
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Nama Lengkap (Opsional)</label>
+                    <input type="text" name="full_name"
+                           {% if admin_user and admin_user.full_name %}value="{{ admin_user.full_name }}"{% endif %}
+                           class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder-slate-500"
+                           placeholder="Budi Santoso" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Password {% if admin_user %}(Opsional){% endif %}</label>
+                    <input type="password" name="password" {% if not admin_user %}required{% endif %}
+                           class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder-slate-500"
+                           placeholder="********" />
+                    {% if admin_user %}
+                    <p class="text-xs text-slate-500 mt-1">Kosongkan jika tidak ingin ganti password.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Role</label>
+                    <select name="role" required
+                            class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500">
+                        {% if current_user.is_superadmin %}
+                        <option value="superadmin" {% if admin_user and admin_user.role == 'superadmin' %}selected{% endif %}>Superadmin</option>
+                        <option value="reseller" {% if admin_user and admin_user.role == 'reseller' %}selected{% endif %}>Reseller</option>
+                        {% endif %}
+                        <option value="operator" {% if admin_user and admin_user.role == 'operator' %}selected{% endif %}>Operator</option>
+                        <option value="viewer" {% if admin_user and admin_user.role == 'viewer' %}selected{% endif %}>Viewer</option>
+                    </select>
+                </div>
+                
+                {% if current_user.is_superadmin %}
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Pilih Tenant / Reseller</label>
+                    <select name="tenant_id"
+                            class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500">
+                        <option value="">-- Tidak ada (Superadmin) --</option>
+                        {% for t in tenants %}
+                            {% if t.id != 1 %}
+                            <option value="{{ t.id }}" {% if admin_user and admin_user.tenant_id == t.id %}selected{% endif %}>{{ t.name }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                {% else %}
+                <input type="hidden" name="tenant_id" value="{{ current_user.tenant_id }}">
+                {% endif %}
+            </div>
+
+            {% if admin_user %}
+            <div class="flex items-center gap-3">
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="is_active" class="sr-only peer" value="true" {% if admin_user.is_active %}checked{% endif %}>
+                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    <span class="ml-3 text-sm font-medium text-slate-300">Status Aktif</span>
+                </label>
+            </div>
+            {% endif %}
+
+            <div class="pt-2 flex justify-end gap-3">
+                <button type="button" @click="show = false; setTimeout(() => $el.closest('#admin-user-modal').remove(), 200)"
+                        class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition-colors">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-xl transition-colors shadow-lg shadow-brand-500/20">
+                    Simpan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

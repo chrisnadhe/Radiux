@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, billing, customers, monitoring, nas, packages, sessions, vendor_profiles, vouchers, tenants
+from app.api.v1 import auth, billing, customers, monitoring, nas, packages, sessions, vendor_profiles, vouchers, tenants, admin_users
 
 router = APIRouter(prefix="/api/v1")
 
@@ -27,5 +27,6 @@ router.include_router(vendor_profiles.router, tags=["Vendor Profiles"])
 # ---------------------------------------------------------------------------
 router.include_router(monitoring.router, tags=["Monitoring"])
 
-# Phase 4+: coa, billing, vouchers, tenants
+# Phase 4+: coa, billing, vouchers, tenants, admin_users
 router.include_router(tenants.router, tags=["Tenants"])
+router.include_router(admin_users.router, tags=["Admin Users"])

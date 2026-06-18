@@ -424,3 +424,87 @@ async def tenant_form_topup(
         name="tenants/_modal_topup.html",
         context={"request": request, "tenant": tenant, "current_user": user},
     )
+
+# ---------------------------------------------------------------------------
+# Admin Users HTMX partials
+# ---------------------------------------------------------------------------
+
+@router.get("/admin-users/table", response_class=HTMLResponse, include_in_schema=False)
+async def admin_users_table(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    access_token: Annotated[str | None, Cookie()] = None,
+) -> HTMLResponse:
+    user = await _get_ui_user(access_token, db)
+    if not user:
+        return HTMLResponse("", status_code=403)
+        
+    from app.models.admin_users import AdminUser
+    from sqlalchemy import select
+    from sqlalchemy.orm import joinedload
+    
+    stmt = select(AdminUser).options(joinedload(AdminUser.tenant)).order_by(AdminUser.id.desc())
+    if not user.is_superadmin:
+        stmt = stmt.where(AdminUser.tenant_id == user.tenant_id)
+        
+    result = await db.scalars(stmt)
+    admin_users = result.all()
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_users/_table.html",
+        context={"request": request, "admin_users": admin_users, "current_user": user},
+    )
+
+@router.get("/admin-users/form", response_class=HTMLResponse, include_in_schema=False)
+async def admin_user_form_create(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    access_token: Annotated[str | None, Cookie()] = None,
+) -> HTMLResponse:
+    user = await _get_ui_user(access_token, db)
+    if not user:
+        return HTMLResponse("", status_code=403)
+        
+    from app.models.tenants import Tenant
+    from sqlalchemy import select
+    tenants_result = await db.scalars(select(Tenant).order_by(Tenant.name))
+    tenants = tenants_result.all()
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_users/_modal_form.html",
+        context={"request": request, "admin_user": None, "tenants": tenants, "current_user": user},
+    )
+
+@router.get("/admin-users/{user_id}/form", response_class=HTMLResponse, include_in_schema=False)
+async def admin_user_form_edit(
+    user_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    access_token: Annotated[str | None, Cookie()] = None,
+) -> HTMLResponse:
+    user = await _get_ui_user(access_token, db)
+    if not user:
+        return HTMLResponse("", status_code=403)
+        
+    from app.models.admin_users import AdminUser
+    from sqlalchemy import select
+    
+    stmt = select(AdminUser).where(AdminUser.id == user_id)
+    if not user.is_superadmin:
+        stmt = stmt.where(AdminUser.tenant_id == user.tenant_id)
+        
+    admin_user = await db.scalar(stmt)
+    if not admin_user:
+        return HTMLResponse("<p>User tidak ditemukan</p>", status_code=404)
+        
+    from app.models.tenants import Tenant
+    tenants_result = await db.scalars(select(Tenant).order_by(Tenant.name))
+    tenants = tenants_result.all()
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_users/_modal_form.html",
+        context={"request": request, "admin_user": admin_user, "tenants": tenants, "current_user": user},
+    )
