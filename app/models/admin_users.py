@@ -40,6 +40,8 @@ class AdminUser(Base):
         default=AdminRole.OPERATOR,
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    telegram_chat_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    is_2fa_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # NULL berarti superadmin (tidak terikat tenant manapun)
     tenant_id: Mapped[int | None] = mapped_column(

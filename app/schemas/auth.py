@@ -16,6 +16,14 @@ class TokenResponse(BaseModel):
     message: str = "Login berhasil"
     username: str
     role: str
+    requires_otp: bool = False
+
+
+class OtpVerifyRequest(BaseModel):
+    """Payload verifikasi OTP."""
+
+    username: str = Field(..., min_length=3, max_length=64)
+    otp: str = Field(..., min_length=6, max_length=6)
 
 
 class MeResponse(BaseModel):

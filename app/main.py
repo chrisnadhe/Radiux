@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Cookie, Depends, FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -516,6 +516,29 @@ async def admin_users_page(
         request=request,
         name="admin_users/index.html",
         context=_base_ctx(request, user, active_page="admin_users", admin_users=admin_users, tenants=tenants),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Page: Audit Logs
+# ---------------------------------------------------------------------------
+@app.get("/audit", response_class=HTMLResponse, include_in_schema=False)
+async def audit_logs_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    access_token: str | None = Cookie(default=None),
+) -> Response:
+    user = await _resolve_user(access_token, db)
+    if not user:
+        from app.ui.routes import _redirect_login
+        return _redirect_login()
+    if not user.is_superadmin:
+        return RedirectResponse(url="/", status_code=302)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="audit/index.html",
+        context=_base_ctx(request, user),
     )
 
 

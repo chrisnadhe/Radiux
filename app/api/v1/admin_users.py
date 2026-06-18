@@ -40,6 +40,8 @@ class AdminUserUpdate(BaseModel):
     role: AdminRole | None = None
     tenant_id: int | None = None
     is_active: bool | None = None
+    telegram_chat_id: str | None = None
+    is_2fa_enabled: bool | None = None
 
     @field_validator("tenant_id", "full_name", "password", mode="before")
     @classmethod
@@ -63,6 +65,8 @@ class AdminUserResponse(BaseModel):
     role: str
     is_active: bool
     tenant_id: int | None
+    telegram_chat_id: str | None = None
+    is_2fa_enabled: bool = False
     tenant: TenantResponse | None = None
     model_config = ConfigDict(from_attributes=True)
 
@@ -145,6 +149,10 @@ async def update_admin_user(
         target_user.tenant_id = req.tenant_id
     if req.is_active is not None:
         target_user.is_active = req.is_active
+    if req.telegram_chat_id is not None:
+        target_user.telegram_chat_id = req.telegram_chat_id
+    if req.is_2fa_enabled is not None:
+        target_user.is_2fa_enabled = req.is_2fa_enabled
     if req.password:
         target_user.hashed_password = get_password_hash(req.password)
 

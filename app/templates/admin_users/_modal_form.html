@@ -101,14 +101,31 @@
                 {% endif %}
             </div>
 
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Telegram Chat ID (Opsional)</label>
+                    <input type="text" name="telegram_chat_id"
+                           {% if admin_user and admin_user.telegram_chat_id %}value="{{ admin_user.telegram_chat_id }}"{% endif %}
+                           class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder-slate-500"
+                           placeholder="123456789" />
+                </div>
+            </div>
+
             {% if admin_user %}
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-6">
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" name="is_active" class="sr-only peer" value="true" {% if admin_user.is_active %}checked{% endif %}>
                     <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                     <span class="ml-3 text-sm font-medium text-slate-300">Status Aktif</span>
                 </label>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="is_2fa_enabled" class="sr-only peer" value="true" {% if admin_user.is_2fa_enabled %}checked{% endif %}>
+                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+                    <span class="ml-3 text-sm font-medium text-slate-300">2FA OTP Telegram</span>
+                </label>
             </div>
+            {% else %}
+            <input type="hidden" name="is_2fa_enabled" value="false" />
             {% endif %}
 
             <div class="pt-2 flex justify-end gap-3">
