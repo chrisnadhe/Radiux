@@ -57,8 +57,8 @@
                             <button type="button"
                                     hx-post="/api/v1/tenants/{{ t.id }}/suspend"
                                     hx-confirm="Yakin ingin mensuspend tenant ini?"
-                                    hx-target="#table-container"
-                                    hx-swap="outerHTML"
+                                    hx-swap="none"
+                                    hx-on::after-request="if(event.detail.successful) { window.location.reload(); }"
                                     title="Suspend Tenant"
                                     class="text-rose-400 hover:text-rose-300 transition-colors">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -69,8 +69,8 @@
                             <button type="button"
                                     hx-post="/api/v1/tenants/{{ t.id }}/activate"
                                     hx-confirm="Yakin ingin mengaktifkan tenant ini?"
-                                    hx-target="#table-container"
-                                    hx-swap="outerHTML"
+                                    hx-swap="none"
+                                    hx-on::after-request="if(event.detail.successful) { window.location.reload(); }"
                                     title="Activate Tenant"
                                     class="text-emerald-400 hover:text-emerald-300 transition-colors">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
