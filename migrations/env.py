@@ -1,0 +1,117 @@
+"""Alembic environment — konfigurasi async migration untuk Radiux."""
+
+import asyncio
+from logging.config import fileConfig
+
+from alembic import context
+from sqlalchemy import pool
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import async_engine_from_config
+
+from app.core.config import get_settings
+from app.core.database import Base
+
+# ---------------------------------------------------------------------------
+# Import semua models agar Alembic dapat mendeteksi perubahan skema.
+# Tambahkan import baru di sini setiap kali model baru dibuat.
+# ---------------------------------------------------------------------------
+# Phase 1+:
+# from app.models import admin_users, customers, packages  # noqa: F401
+# Phase 2+:
+# from app.models import nas_vendor_profiles  # noqa: F401
+# Phase 5+:
+# from app.models import vouchers, invoices, payments  # noqa: F401
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Setup
+# ---------------------------------------------------------------------------
+config = context.config
+settings = get_settings()
+
+# Override sqlalchemy.url dari settings (agar baca dari .env)
+config.set_main_option("sqlalchemy.url", str(settings.database_url))
+
+# Setup logging dari alembic.ini
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# MetaData target untuk autogenerate
+target_metadata = Base.metadata
+
+
+# ---------------------------------------------------------------------------
+# Offline migrations (jalankan SQL langsung tanpa koneksi DB live)
+# ---------------------------------------------------------------------------
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode."""
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+        # Jangan sentuh tabel inti FreeRADIUS!
+        include_schemas=False,
+    )
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+# ---------------------------------------------------------------------------
+# Online migrations (async)
+# ---------------------------------------------------------------------------
+def do_run_migrations(connection: Connection) -> None:
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        # Jangan include tabel inti FreeRADIUS dalam autogenerate
+        # (tabel FreeRADIUS dibuat via schema.sql, bukan Alembic)
+        include_name=_include_name,
+    )
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def _include_name(name: str | None, type_: str, parent_names: dict) -> bool:  # noqa: ANN001
+    """Filter tabel yang boleh dikelola Alembic.
+
+    Tabel inti FreeRADIUS (radcheck, radreply, radacct, dll) TIDAK boleh
+    dikelola Alembic — hanya tabel ekstensi Radiux yang boleh.
+    """
+    freeradius_core_tables = {
+        "radcheck",
+        "radreply",
+        "radgroupcheck",
+        "radgroupreply",
+        "radusergroup",
+        "radacct",
+        "radpostauth",
+        "nas",
+    }
+    if type_ == "table":
+        return name not in freeradius_core_tables
+    return True
+
+
+async def run_async_migrations() -> None:
+    """Run migrations in 'online' mode dengan async engine."""
+    connectable = async_engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
+    await connectable.dispose()
+
+
+def run_migrations_online() -> None:
+    """Entry point untuk online migrations."""
+    asyncio.run(run_async_migrations())
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()

@@ -1,0 +1,7 @@
+# Placeholder untuk vendor dictionary files
+# Vendor dictionary akan ditambahkan di Phase 2 (Multi-Vendor NAS):
+#   - dictionary.mikrotik
+#   - dictionary.ubiquiti
+#   - dictionary.cisco
+#   - dictionary.huawei
+#   - dictionary.cambium
