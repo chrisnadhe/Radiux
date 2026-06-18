@@ -40,7 +40,7 @@ Radiux dan FreeRADIUS berbagi satu database PostgreSQL yang sama. FreeRADIUS mem
 Seluruh dependensi (Python packages via `uv`, FreeRADIUS, PostgreSQL, Redis) terinstal otomatis lewat image Docker — tidak perlu instalasi manual di host.
 
 ```bash
-git clone https://github.com/<org>/radiux.git
+git clone https://github.com/chrisnadhe/radiux.git
 cd radiux
 cp .env.example .env
 # sesuaikan kredensial DB, secret key, dan RADIUS shared secret default di .env
