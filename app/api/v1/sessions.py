@@ -7,9 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import CurrentUser
+from app.models.admin_users import AdminUser
 from app.services import coa_service
 
 router = APIRouter(prefix="/sessions", tags=["Sessions"])
+
 
 def _get_tenant_id(user: "AdminUser") -> int | None:
     return None if user.is_superadmin else user.tenant_id
@@ -22,8 +24,8 @@ async def kick_session(radacctid: int, user: CurrentUser, db: AsyncSession = Dep
     try:
         success = await coa_service.kick_user(db, radacctid, scope_tenant_id)
     except PermissionError as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
-    
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e)) from e
+
     if not success:
         # Kita tetap mereturn 200 dengan status info,
         # karena di level DB kita paksakan close, hanya pengiriman UDP yang gagal

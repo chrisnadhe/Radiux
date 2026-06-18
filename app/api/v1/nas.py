@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, status
 
-from app.core.dependencies import SuperAdminUser, DbSession
+from app.core.dependencies import DbSession, SuperAdminUser
 from app.models.nas_ext import NasExt
 from app.schemas.nas import NasCreateRequest, NasListResponse, NasRead, NasUpdateRequest
 from app.schemas.vendor_profiles import VendorProfileRead

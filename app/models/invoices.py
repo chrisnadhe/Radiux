@@ -23,7 +23,7 @@ class Invoice(Base):
     __tablename__ = "invoices"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    
+
     # Nomor tagihan (misal INV-202606-0001)
     invoice_number: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
 
@@ -37,13 +37,13 @@ class Invoice(Base):
 
     # Periode tagihan (misal "Juni 2026" atau sekadar bulan/tahun angka)
     billing_period: Mapped[str] = mapped_column(String(64), nullable=False)
-    
+
     # Tanggal jatuh tempo
     due_date: Mapped[date] = mapped_column(Date, nullable=False)
-    
+
     # Total tagihan (diambil dari harga paket saat di-generate)
     amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False, default=0.0)
-    
+
     # Status
     status: Mapped[InvoiceStatus] = mapped_column(
         Enum(InvoiceStatus, name="invoice_status_enum", values_callable=lambda x: [e.value for e in x]),
@@ -62,7 +62,7 @@ class Invoice(Base):
 
     # Tanggal lunas
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    
+
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

@@ -21,8 +21,8 @@ from app.services import (
     monitoring_service,
     nas_service,
     package_service,
-    vendor_profile_service,
     scheduler_service,
+    vendor_profile_service,
 )
 from app.ui.routes import router as ui_router
 
@@ -158,7 +158,9 @@ async def dashboard(
     scope_tenant_id = None if user.is_superadmin else user.tenant_id
 
     # Ambil stats dari service layer
-    customers, total_customers = await customer_service.list_customers(db, tenant_id=scope_tenant_id, page=1, page_size=1)
+    customers, total_customers = await customer_service.list_customers(
+        db, tenant_id=scope_tenant_id, page=1, page_size=1
+    )
     active_customers, active_total = await customer_service.list_customers(
         db,
         tenant_id=scope_tenant_id,
@@ -177,8 +179,10 @@ async def dashboard(
     # Ambil balance jika reseller
     wallet_balance = 0.0
     if not user.is_superadmin:
-        from app.models.tenants import Tenant
         from sqlalchemy import select
+
+        from app.models.tenants import Tenant
+
         tenant_obj = await db.scalar(select(Tenant).where(Tenant.id == user.tenant_id))
         if tenant_obj:
             wallet_balance = float(tenant_obj.balance)
@@ -323,14 +327,15 @@ async def tenants_page(
     user = await _resolve_user(access_token, db)
     if user is None:
         return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
-        
+
     if not user.is_superadmin:
         # Redirect reseller ke halaman dashboard jika mencoba akses ini
         return RedirectResponse(url="/", status_code=302)  # type: ignore[return-value]
 
-    from app.models.tenants import Tenant
     from sqlalchemy import select
-    
+
+    from app.models.tenants import Tenant
+
     result = await db.scalars(select(Tenant).where(Tenant.id != 1).order_by(Tenant.id.desc()))
     tenants = result.all()
 
@@ -361,6 +366,7 @@ async def monitoring_page(
         context=_base_ctx(request, user, active_page="monitoring"),
     )
 
+
 # ---------------------------------------------------------------------------
 # Page: Vouchers
 # ---------------------------------------------------------------------------
@@ -375,7 +381,8 @@ async def vouchers_page(
     if user is None:
         return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
 
-    from app.services import voucher_service, package_service
+    from app.services import package_service, voucher_service
+
     scope_tenant_id = None if user.is_superadmin else user.tenant_id
     batches = await voucher_service.get_voucher_batches(db, tenant_id=scope_tenant_id or 1)
     packages, _ = await package_service.list_packages(db, tenant_id=None, include_inactive=False)
@@ -385,6 +392,7 @@ async def vouchers_page(
         name="vouchers/index.html",
         context=_base_ctx(request, user, active_page="vouchers", batches=batches, packages=packages),
     )
+
 
 @app.get("/vouchers/{batch_id}/print", response_class=HTMLResponse, include_in_schema=False)
 async def print_vouchers_page(
@@ -398,9 +406,10 @@ async def print_vouchers_page(
     if user is None:
         return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
 
-    from app.services import voucher_service
     from fastapi import HTTPException
-    
+
+    from app.services import voucher_service
+
     scope_tenant_id = None if user.is_superadmin else user.tenant_id
     vouchers = await voucher_service.get_vouchers_by_batch(db, batch_id, tenant_id=scope_tenant_id or 1)
     if not vouchers:
@@ -411,6 +420,7 @@ async def print_vouchers_page(
         name="vouchers/print.html",
         context=_base_ctx(request, user, active_page="vouchers", batch_id=batch_id, vouchers=vouchers),
     )
+
 
 # ---------------------------------------------------------------------------
 # Page: Billing & Invoices
@@ -427,9 +437,10 @@ async def billing_page(
         return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
 
     from app.services import billing_service, customer_service
+
     scope_tenant_id = None if user.is_superadmin else user.tenant_id
     invoices = await billing_service.get_invoices(db, tenant_id=scope_tenant_id or 1)
-    
+
     # Ambil customer untuk dropdown manual invoice
     customers, _ = await customer_service.list_customers(db, tenant_id=scope_tenant_id, page=1, page_size=1000)
 
@@ -438,6 +449,7 @@ async def billing_page(
         name="billing/index.html",
         context=_base_ctx(request, user, active_page="billing", invoices=invoices, customers=customers),
     )
+
 
 @app.get("/billing/{invoice_id}/print", response_class=HTMLResponse, include_in_schema=False)
 async def print_invoice_page(
@@ -451,9 +463,10 @@ async def print_invoice_page(
     if user is None:
         return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
 
-    from app.services import billing_service
     from fastapi import HTTPException
-    
+
+    from app.services import billing_service
+
     scope_tenant_id = None if user.is_superadmin else user.tenant_id
     invoice = await billing_service.get_invoice_with_customer(db, invoice_id, tenant_id=scope_tenant_id or 1)
     if not invoice:
@@ -464,6 +477,7 @@ async def print_invoice_page(
         name="billing/print.html",
         context=_base_ctx(request, user, active_page="billing", invoice=invoice),
     )
+
 
 # ---------------------------------------------------------------------------
 # Page: Admin Users
@@ -478,20 +492,22 @@ async def admin_users_page(
     user = await _resolve_user(access_token, db)
     if user is None:
         return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
-        
-    from app.models.admin_users import AdminUser
+
     from sqlalchemy import select
     from sqlalchemy.orm import joinedload
-    
+
+    from app.models.admin_users import AdminUser
+
     stmt = select(AdminUser).options(joinedload(AdminUser.tenant)).order_by(AdminUser.id.desc())
     if not user.is_superadmin:
         stmt = stmt.where(AdminUser.tenant_id == user.tenant_id)
-        
+
     result = await db.scalars(stmt)
     admin_users = result.all()
-    
+
     # Ambil list tenant untuk dropdown form
     from app.models.tenants import Tenant
+
     tenants_result = await db.scalars(select(Tenant).order_by(Tenant.name))
     tenants = tenants_result.all()
 

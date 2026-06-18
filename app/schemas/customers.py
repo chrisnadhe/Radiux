@@ -19,7 +19,7 @@ class CustomerBase(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def empty_to_none(cls, data: Any) -> Any:
+    def empty_to_none(cls, data: Any) -> Any:  # noqa: ANN401
         """Konversi string kosong dari HTML form menjadi None."""
         if isinstance(data, dict):
             for k, v in data.items():

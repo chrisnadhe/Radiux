@@ -5,6 +5,7 @@ import math
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.core.dependencies import CurrentUser, DbSession
+from app.models.admin_users import AdminUser
 from app.models.customers import CustomerStatus
 from app.schemas.customers import (
     CustomerCreate,

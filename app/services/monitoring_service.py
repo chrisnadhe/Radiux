@@ -2,7 +2,9 @@
 
 import asyncio
 import json
+from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,7 +54,7 @@ async def get_nas_status(db: AsyncSession, tenant_id: int | None = None) -> list
     nas_pairs = list(nas_result.all())
 
     statuses = []
-    for core, ext in nas_pairs:
+    for core, _ext in nas_pairs:
         # Cari acctupdatetime atau acctstarttime terbaru untuk NAS ini
         latest_acct = await db.execute(
             select(func.max(func.coalesce(RadAcct.acctupdatetime, RadAcct.acctstarttime))).where(
@@ -90,7 +92,7 @@ async def get_nas_status(db: AsyncSession, tenant_id: int | None = None) -> list
     return statuses
 
 
-async def stream_active_sessions(tenant_id: int | None = None):
+async def stream_active_sessions(tenant_id: int | None = None) -> AsyncGenerator[dict[str, Any]]:
     """Async generator untuk SSE yang mengirim data sesi secara periodik."""
     while True:
         try:

@@ -14,15 +14,13 @@ Aturan wajib:
 - Router hanya parse request → panggil service → return response.
 """
 
-from . import (
-    auth_service,
-    billing_service,
-    coa_service,
-    customer_service,
-    monitoring_service,
-    nas_service,
-    package_service,
-    vendor_profile_service,
-    voucher_service,
-    wallet_service,
-)
+from . import auth_service as auth_service
+from . import billing_service as billing_service
+from . import coa_service as coa_service
+from . import customer_service as customer_service
+from . import monitoring_service as monitoring_service
+from . import nas_service as nas_service
+from . import package_service as package_service
+from . import vendor_profile_service as vendor_profile_service
+from . import voucher_service as voucher_service
+from . import wallet_service as wallet_service

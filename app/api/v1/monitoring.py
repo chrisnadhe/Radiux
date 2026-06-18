@@ -4,10 +4,12 @@ from fastapi import APIRouter
 from sse_starlette.sse import EventSourceResponse
 
 from app.core.dependencies import CurrentUser, DbSession
+from app.models.admin_users import AdminUser
 from app.schemas.monitoring import ActiveSessionRead, NasStatusRead
 from app.services import monitoring_service
 
 router = APIRouter(prefix="/monitoring", tags=["Monitoring"])
+
 
 def _get_tenant_id(user: "AdminUser") -> int | None:
     return None if user.is_superadmin else user.tenant_id

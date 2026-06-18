@@ -2,7 +2,19 @@
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, billing, customers, monitoring, nas, packages, sessions, vendor_profiles, vouchers, tenants, admin_users
+from app.api.v1 import (
+    admin_users,
+    auth,
+    billing,
+    customers,
+    monitoring,
+    nas,
+    packages,
+    sessions,
+    tenants,
+    vendor_profiles,
+    vouchers,
+)
 
 router = APIRouter(prefix="/api/v1")
 
