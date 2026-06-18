@@ -1,12 +1,18 @@
 """Alembic environment — konfigurasi async migration untuk Radiux."""
 
 import asyncio
+import sys
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
+
+if sys.platform == "win32":
+    import asyncio
+
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from app.core.config import get_settings
 from app.core.database import Base
@@ -40,7 +46,7 @@ config = context.config
 settings = get_settings()
 
 # Override sqlalchemy.url dari settings (agar baca dari .env)
-config.set_main_option("sqlalchemy.url", str(settings.database_url))
+config.set_main_option("sqlalchemy.url", str(settings.database_url).replace("%", "%%"))
 
 # Setup logging dari alembic.ini
 if config.config_file_name is not None:

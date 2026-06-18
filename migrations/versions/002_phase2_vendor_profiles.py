@@ -170,7 +170,7 @@ def upgrade() -> None:
         sa.column("name", sa.String),
         sa.column("description", sa.Text),
         sa.column("rate_limit_attribute", sa.String),
-        sa.column("rate_limit_format", sa.String),
+        sa.column("rate_limit_format", rate_limit_format_enum),
         sa.column("extra_group_reply_attrs", JSONB),
         sa.column("is_builtin", sa.Boolean),
         sa.column("is_active", sa.Boolean),
