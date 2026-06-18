@@ -7,6 +7,7 @@ from jose import JWTError
 
 from app.core.database import AsyncSession, get_db
 from app.core.security import verify_token
+from app.models.admin_users import AdminRole, AdminUser
 
 # ---------------------------------------------------------------------------
 # Type aliases — dipakai di seluruh codebase agar DRY
@@ -15,8 +16,7 @@ DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
 # ---------------------------------------------------------------------------
-# Auth dependencies (skeleton — akan dilengkapi di Phase 1 saat model
-# AdminUser sudah ada di database)
+# Auth dependencies
 # ---------------------------------------------------------------------------
 async def get_current_user_id(
     access_token: Annotated[str | None, Cookie()] = None,
@@ -45,4 +45,49 @@ async def get_current_user_id(
         raise credentials_exception from exc
 
 
+async def get_current_user(
+    user_id: Annotated[int, Depends(get_current_user_id)],
+    db: DbSession,
+) -> AdminUser:
+    """Return AdminUser yang sedang login (divalidasi dari DB).
+
+    Raises:
+        HTTPException 401: Jika user tidak ditemukan atau tidak aktif.
+
+    """
+    from sqlalchemy import select
+
+    result = await db.execute(select(AdminUser).where(AdminUser.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if user is None or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Sesi tidak valid — akun tidak ditemukan atau dinonaktifkan",
+        )
+    return user
+
+
+async def require_superadmin(
+    user: Annotated[AdminUser, Depends(get_current_user)],
+) -> AdminUser:
+    """Dependency yang memastikan user adalah superadmin.
+
+    Raises:
+        HTTPException 403: Jika bukan superadmin.
+
+    """
+    if user.role != AdminRole.SUPERADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Aksi ini memerlukan hak akses superadmin",
+        )
+    return user
+
+
+# ---------------------------------------------------------------------------
+# Type aliases untuk dependency injection
+# ---------------------------------------------------------------------------
 CurrentUserId = Annotated[int, Depends(get_current_user_id)]
+CurrentUser = Annotated[AdminUser, Depends(get_current_user)]
+SuperAdminUser = Annotated[AdminUser, Depends(require_superadmin)]

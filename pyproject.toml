@@ -43,6 +43,8 @@ dependencies = [
     # Async
     "anyio==4.7.0",
     "bcrypt==4.3.0",
+    "cryptography>=49.0.0",
+    "email-validator>=2.3.0",
 ]
 
 [project.optional-dependencies]
@@ -68,7 +70,7 @@ radiux = "app.cli:main"
 
 [tool.ruff]
 target-version = "py313"
-line-length = 88
+line-length = 120
 
 [tool.ruff.lint]
 select = [
