@@ -10,6 +10,7 @@ from app.api.v1 import (
     monitoring,
     nas,
     packages,
+    reports,
     sessions,
     tenants,
     vendor_profiles,
@@ -42,3 +43,8 @@ router.include_router(monitoring.router, tags=["Monitoring"])
 # Phase 4+: coa, billing, vouchers, tenants, admin_users
 router.include_router(tenants.router, tags=["Tenants"])
 router.include_router(admin_users.router, tags=["Admin Users"])
+
+# ---------------------------------------------------------------------------
+# Domain routers — Phase 7: Reporting & Dashboard
+# ---------------------------------------------------------------------------
+router.include_router(reports.router, tags=["Reports"])

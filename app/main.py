@@ -21,6 +21,7 @@ from app.services import (
     monitoring_service,
     nas_service,
     package_service,
+    report_service,
     scheduler_service,
     vendor_profile_service,
 )
@@ -515,4 +516,108 @@ async def admin_users_page(
         request=request,
         name="admin_users/index.html",
         context=_base_ctx(request, user, active_page="admin_users", admin_users=admin_users, tenants=tenants),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Page: Reports — Usage
+# ---------------------------------------------------------------------------
+@app.get("/reports", response_class=HTMLResponse, include_in_schema=False)
+async def reports_usage_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> HTMLResponse:
+    """Halaman laporan pemakaian."""
+    from datetime import date
+
+    access_token = request.cookies.get("access_token")
+    user = await _resolve_user(access_token, db)
+    if user is None:
+        return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
+
+    scope_tenant_id = None if user.is_superadmin else user.tenant_id
+
+    today = date.today()
+    df = date.fromisoformat(date_from) if date_from else today.replace(day=1)
+    dt = date.fromisoformat(date_to) if date_to else today
+
+    rows = await report_service.get_usage_report(db, scope_tenant_id, df, dt)
+
+    # Data untuk chart (top 10)
+    top10 = rows[:10]
+    chart_labels = [r["full_name"][:20] for r in top10]
+    chart_downloads = [r["download_gb"] for r in top10]
+    chart_uploads = [r["upload_gb"] for r in top10]
+
+    total_sessions = sum(r["session_count"] for r in rows)
+    total_download_gb = round(sum(r["download_gb"] for r in rows), 2)
+    total_upload_gb = round(sum(r["upload_gb"] for r in rows), 2)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="reports/index.html",
+        context=_base_ctx(
+            request,
+            user,
+            active_page="reports",
+            rows=rows,
+            date_from=df.isoformat(),
+            date_to=dt.isoformat(),
+            total_sessions=total_sessions,
+            total_download_gb=total_download_gb,
+            total_upload_gb=total_upload_gb,
+            chart_labels=chart_labels,
+            chart_downloads=chart_downloads,
+            chart_uploads=chart_uploads,
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Page: Reports — Revenue
+# ---------------------------------------------------------------------------
+@app.get("/reports/revenue", response_class=HTMLResponse, include_in_schema=False)
+async def reports_revenue_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    year: int | None = None,
+    month: int | None = None,
+) -> HTMLResponse:
+    """Halaman laporan revenue."""
+    from datetime import date
+
+    access_token = request.cookies.get("access_token")
+    user = await _resolve_user(access_token, db)
+    if user is None:
+        return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
+
+    scope_tenant_id = None if user.is_superadmin else user.tenant_id
+    today = date.today()
+    y = year or today.year
+    m = month or today.month
+
+    data = await report_service.get_revenue_report(db, scope_tenant_id, y, m)
+    trend = await report_service.get_revenue_trend(db, scope_tenant_id, months=6)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="reports/revenue.html",
+        context=_base_ctx(
+            request,
+            user,
+            active_page="reports_revenue",
+            year=y,
+            month=m,
+            current_year=today.year,
+            period=data["period"],
+            summary=data["summary"],
+            invoices=data["invoices"],
+            by_tenant=data["by_tenant"],
+            wallet_summary=data["wallet_summary"],
+            trend_labels=[t["label"] for t in trend],
+            trend_invoice=[t["invoice_amount"] for t in trend],
+            trend_payment=[t["payment_amount"] for t in trend],
+        ),
     )

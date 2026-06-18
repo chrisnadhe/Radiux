@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Laporan Pemakaian{% endblock %}
+{% block meta_description %}Laporan pemakaian internet per pelanggan — upload, download, durasi sesi.{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  {# ── Header ── #}
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Laporan Pemakaian</h1>
+      <p class="text-sm text-slate-400 mt-1">Data pemakaian internet per customer dari tabel <code class="text-brand-400 font-mono text-xs">radacct</code></p>
+    </div>
+    <a id="btn-export-usage"
+       href="/api/v1/reports/usage/export?date_from={{ date_from }}&date_to={{ date_to }}"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+      </svg>
+      Export CSV
+    </a>
+  </div>
+
+  {# ── Filter Bar ── #}
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+    <form id="filter-form" method="get" action="/reports"
+          class="flex flex-wrap items-end gap-4">
+      <div class="flex flex-col gap-1">
+        <label for="date_from" class="text-xs font-medium text-slate-400">Dari Tanggal</label>
+        <input type="date" id="date_from" name="date_from" value="{{ date_from }}"
+               class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white
+                      focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent" />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="date_to" class="text-xs font-medium text-slate-400">Sampai Tanggal</label>
+        <input type="date" id="date_to" name="date_to" value="{{ date_to }}"
+               class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white
+                      focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent" />
+      </div>
+      <button type="submit"
+              class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-colors">
+        Tampilkan
+      </button>
+    </form>
+  </div>
+
+  {# ── Summary Cards ── #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Customer</p>
+      <p class="text-3xl font-bold text-white mt-1">{{ rows | length }}</p>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Sesi</p>
+      <p class="text-3xl font-bold text-brand-400 mt-1">{{ total_sessions }}</p>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Download</p>
+      <p class="text-3xl font-bold text-emerald-400 mt-1">{{ total_download_gb }} <span class="text-base font-medium">GB</span></p>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Upload</p>
+      <p class="text-3xl font-bold text-amber-400 mt-1">{{ total_upload_gb }} <span class="text-base font-medium">GB</span></p>
+    </div>
+  </div>
+
+  {# ── Chart Top 10 Usage ── #}
+  {% if rows %}
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+    <h2 class="text-base font-semibold text-white mb-4">Top 10 Customer — Download (GB)</h2>
+    <div class="h-64">
+      <canvas id="usageChart"></canvas>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Data Table ── #}
+  <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+      <h2 class="text-base font-semibold text-white">Detail Pemakaian</h2>
+      <span class="text-sm text-slate-500">{{ rows | length }} customer</span>
+    </div>
+
+    {% if rows %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-slate-800 text-left">
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">#</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Username</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Sesi</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Durasi (Jam)</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Upload (GB)</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Download (GB)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/50">
+          {% for row in rows %}
+          <tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="px-4 py-3 text-slate-500 font-mono text-xs">{{ loop.index }}</td>
+            <td class="px-4 py-3 text-white font-medium">{{ row.full_name }}</td>
+            <td class="px-4 py-3 text-slate-400 font-mono text-xs">{{ row.username }}</td>
+            <td class="px-4 py-3 text-right text-slate-300">{{ row.session_count }}</td>
+            <td class="px-4 py-3 text-right text-slate-300">{{ "%.2f" | format(row.duration_hours) }}</td>
+            <td class="px-4 py-3 text-right text-amber-400 font-medium">{{ "%.3f" | format(row.upload_gb) }}</td>
+            <td class="px-4 py-3 text-right">
+              <span class="inline-flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+                <span class="text-emerald-400 font-semibold">{{ "%.3f" | format(row.download_gb) }}</span>
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="flex flex-col items-center justify-center py-20 text-center">
+      <svg class="w-16 h-16 text-slate-700 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      <p class="text-slate-400 font-medium">Tidak ada data pemakaian</p>
+      <p class="text-slate-600 text-sm mt-1">untuk periode {{ date_from }} – {{ date_to }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if rows %}
+<script>
+(function () {
+  const labels = {{ chart_labels | tojson }};
+  const downloads = {{ chart_downloads | tojson }};
+  const uploads = {{ chart_uploads | tojson }};
+
+  const ctx = document.getElementById('usageChart');
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Download (GB)',
+          data: downloads,
+          backgroundColor: 'rgba(52, 211, 153, 0.75)',
+          borderColor: 'rgba(52, 211, 153, 1)',
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+        {
+          label: 'Upload (GB)',
+          data: uploads,
+          backgroundColor: 'rgba(251, 191, 36, 0.6)',
+          borderColor: 'rgba(251, 191, 36, 1)',
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { family: 'Inter' } } },
+        tooltip: {
+          backgroundColor: '#1e293b',
+          titleColor: '#f1f5f9',
+          bodyColor: '#94a3b8',
+          borderColor: '#334155',
+          borderWidth: 1,
+          callbacks: {
+            label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)} GB`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#64748b', font: { size: 11, family: 'Inter' } },
+          grid: { color: '#1e293b' },
+        },
+        y: {
+          ticks: { color: '#64748b', font: { size: 11, family: 'Inter' } },
+          grid: { color: '#1e293b' },
+        },
+      },
+    },
+  });
+
+  // Update export href on filter change
+  document.getElementById('filter-form').addEventListener('submit', function () {
+    const df = document.getElementById('date_from').value;
+    const dt = document.getElementById('date_to').value;
+    document.getElementById('btn-export-usage').href =
+      `/api/v1/reports/usage/export?date_from=${df}&date_to=${dt}`;
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

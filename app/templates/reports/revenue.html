@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Laporan Revenue{% endblock %}
+{% block meta_description %}Laporan revenue invoice dan pembayaran per periode, termasuk breakdown per reseller.{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  {# ── Header ── #}
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Laporan Revenue</h1>
+      <p class="text-sm text-slate-400 mt-1">Invoice & pembayaran periode <span class="text-brand-400 font-semibold">{{ period }}</span></p>
+    </div>
+    <a id="btn-export-revenue"
+       href="/api/v1/reports/revenue/export?year={{ year }}&month={{ month }}"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+      </svg>
+      Export CSV
+    </a>
+  </div>
+
+  {# ── Filter Bar ── #}
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+    <form id="filter-form" method="get" action="/reports/revenue"
+          class="flex flex-wrap items-end gap-4">
+      <div class="flex flex-col gap-1">
+        <label for="month" class="text-xs font-medium text-slate-400">Bulan</label>
+        <select id="month" name="month"
+                class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white
+                       focus:outline-none focus:ring-2 focus:ring-brand-500">
+          {% for m in range(1, 13) %}
+          <option value="{{ m }}" {% if m == month %}selected{% endif %}>
+            {{ ["", "Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"][m] }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="year" class="text-xs font-medium text-slate-400">Tahun</label>
+        <select id="year" name="year"
+                class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white
+                       focus:outline-none focus:ring-2 focus:ring-brand-500">
+          {% for y in range(current_year - 3, current_year + 1) %}
+          <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit"
+              class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-colors">
+        Tampilkan
+      </button>
+    </form>
+  </div>
+
+  {# ── Summary Cards ── #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Invoice</p>
+      <p class="text-3xl font-bold text-white mt-1">{{ summary.total_invoices }}</p>
+      <p class="text-xs text-slate-600 mt-1">{{ summary.paid_invoices }} lunas · {{ summary.unpaid_invoices }} belum</p>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Tagihan</p>
+      <p class="text-2xl font-bold text-white mt-1">Rp {{ "{:,.0f}".format(summary.total_invoice_amount) }}</p>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pembayaran Diterima</p>
+      <p class="text-2xl font-bold text-emerald-400 mt-1">Rp {{ "{:,.0f}".format(summary.total_payments_received) }}</p>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Collection Rate</p>
+      <p class="text-3xl font-bold mt-1
+                 {% if summary.collection_rate >= 80 %}text-emerald-400{% elif summary.collection_rate >= 50 %}text-amber-400{% else %}text-red-400{% endif %}">
+        {{ summary.collection_rate }}%
+      </p>
+    </div>
+  </div>
+
+  {# ── Revenue Trend Chart ── #}
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+    <h2 class="text-base font-semibold text-white mb-4">Tren Revenue 6 Bulan Terakhir</h2>
+    <div class="h-64">
+      <canvas id="revenueTrendChart"></canvas>
+    </div>
+  </div>
+
+  {# ── Breakdown per Reseller (superadmin only) ── #}
+  {% if by_tenant %}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    {# Revenue per reseller #}
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-800">
+        <h2 class="text-base font-semibold text-white">Revenue per Reseller</h2>
+      </div>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-slate-800 text-left">
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Reseller</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Invoice</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Total (Rp)</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Lunas (Rp)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/50">
+          {% for t in by_tenant %}
+          <tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="px-4 py-3 text-white font-medium">{{ t.tenant_name }}</td>
+            <td class="px-4 py-3 text-right text-slate-400">{{ t.invoice_count }}</td>
+            <td class="px-4 py-3 text-right text-slate-300">{{ "{:,.0f}".format(t.total_amount) }}</td>
+            <td class="px-4 py-3 text-right text-emerald-400 font-semibold">{{ "{:,.0f}".format(t.paid_amount) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# Mutasi wallet per reseller #}
+    {% if wallet_summary %}
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-800">
+        <h2 class="text-base font-semibold text-white">Mutasi Wallet Reseller</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Topup dan deduksi saldo bulan ini</p>
+      </div>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-slate-800 text-left">
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Reseller</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Topup (Rp)</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Deduksi (Rp)</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Net (Rp)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/50">
+          {% for w in wallet_summary %}
+          {% set net = w.topup - w.deduction %}
+          <tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="px-4 py-3 text-white font-medium">{{ w.tenant_name }}</td>
+            <td class="px-4 py-3 text-right text-emerald-400">{{ "{:,.0f}".format(w.topup) }}</td>
+            <td class="px-4 py-3 text-right text-red-400">{{ "{:,.0f}".format(w.deduction) }}</td>
+            <td class="px-4 py-3 text-right font-semibold {% if net >= 0 %}text-emerald-400{% else %}text-red-400{% endif %}">
+              {{ "{:,.0f}".format(net) }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
+  {# ── Invoice Table ── #}
+  <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+      <h2 class="text-base font-semibold text-white">Daftar Invoice</h2>
+      <span class="text-sm text-slate-500">{{ invoices | length }} invoice</span>
+    </div>
+
+    {% if invoices %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-slate-800 text-left">
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">No. Invoice</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer</th>
+            {% if current_user.is_superadmin %}
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Reseller</th>
+            {% endif %}
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Periode</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Jumlah (Rp)</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Jatuh Tempo</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/50">
+          {% for inv in invoices %}
+          <tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="px-4 py-3 font-mono text-xs text-slate-400">{{ inv.invoice_number }}</td>
+            <td class="px-4 py-3 text-white font-medium">{{ inv.customer_name }}</td>
+            {% if current_user.is_superadmin %}
+            <td class="px-4 py-3 text-slate-400 text-xs">{{ inv.tenant_name }}</td>
+            {% endif %}
+            <td class="px-4 py-3 text-slate-300">{{ inv.billing_period }}</td>
+            <td class="px-4 py-3 text-right text-slate-100 font-semibold">{{ "{:,.0f}".format(inv.amount) }}</td>
+            <td class="px-4 py-3">
+              {% if inv.status == "paid" %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-900/50 text-emerald-400 border border-emerald-800">
+                Lunas
+              </span>
+              {% elif inv.status == "unpaid" %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-900/50 text-amber-400 border border-amber-800">
+                Belum Lunas
+              </span>
+              {% else %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700">
+                {{ inv.status | title }}
+              </span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-slate-400 text-xs">{{ inv.due_date or "-" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="flex flex-col items-center justify-center py-20 text-center">
+      <svg class="w-16 h-16 text-slate-700 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+              d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>
+      </svg>
+      <p class="text-slate-400 font-medium">Tidak ada invoice</p>
+      <p class="text-slate-600 text-sm mt-1">untuk periode {{ period }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const trendLabels = {{ trend_labels | tojson }};
+  const trendInvoice = {{ trend_invoice | tojson }};
+  const trendPayment = {{ trend_payment | tojson }};
+
+  const ctx = document.getElementById('revenueTrendChart');
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: trendLabels,
+      datasets: [
+        {
+          label: 'Total Invoice (Rp)',
+          data: trendInvoice,
+          borderColor: '#60a5fa',
+          backgroundColor: 'rgba(96, 165, 250, 0.12)',
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: '#60a5fa',
+          pointRadius: 4,
+        },
+        {
+          label: 'Pembayaran Diterima (Rp)',
+          data: trendPayment,
+          borderColor: '#34d399',
+          backgroundColor: 'rgba(52, 211, 153, 0.10)',
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: '#34d399',
+          pointRadius: 4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { family: 'Inter' } } },
+        tooltip: {
+          backgroundColor: '#1e293b',
+          titleColor: '#f1f5f9',
+          bodyColor: '#94a3b8',
+          borderColor: '#334155',
+          borderWidth: 1,
+          callbacks: {
+            label: (ctx) => ` ${ctx.dataset.label}: Rp ${Number(ctx.parsed.y).toLocaleString('id-ID')}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#64748b', font: { size: 11, family: 'Inter' } },
+          grid: { color: '#1e293b' },
+        },
+        y: {
+          ticks: {
+            color: '#64748b',
+            font: { size: 11, family: 'Inter' },
+            callback: (v) => 'Rp ' + Number(v).toLocaleString('id-ID'),
+          },
+          grid: { color: '#1e293b' },
+        },
+      },
+    },
+  });
+
+  // Update export href on filter change
+  document.getElementById('filter-form').addEventListener('submit', function () {
+    const m = document.getElementById('month').value;
+    const y = document.getElementById('year').value;
+    document.getElementById('btn-export-revenue').href =
+      `/api/v1/reports/revenue/export?year=${y}&month=${m}`;
+  });
+})();
+</script>
+{% endblock %}
