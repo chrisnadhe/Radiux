@@ -8,16 +8,20 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.dependencies import CurrentUser
 from app.models.payments import PaymentMethod
 from app.services import billing_service
 
 router = APIRouter(prefix="/billing", tags=["Billing"])
 
+def _get_tenant_id(user: "AdminUser") -> int | None:
+    return None if user.is_superadmin else user.tenant_id
+
 class PaymentRequest(BaseModel):
     customer_id: int
     amount: float
     method: PaymentMethod = PaymentMethod.CASH
-    tenant_id: int = 1
+    tenant_id: int | None = None
     invoice_id: int | None = None
     reference: str | None = None
     notes: str | None = None
@@ -27,7 +31,7 @@ class ManualInvoiceRequest(BaseModel):
     amount: float
     billing_period: str
     due_date: date
-    tenant_id: int = 1
+    tenant_id: int | None = None
 
 @router.post("/generate-invoices", status_code=status.HTTP_200_OK)
 async def api_generate_invoices(db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
@@ -38,25 +42,41 @@ async def api_generate_invoices(db: AsyncSession = Depends(get_db)) -> dict[str,
 @router.post("/invoice", status_code=status.HTTP_201_CREATED)
 async def api_create_manual_invoice(
     req: ManualInvoiceRequest,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db)
 ) -> dict[str, Any]:
     """Membuat invoice manual satuan."""
-    invoice = await billing_service.create_manual_invoice(
-        db=db,
-        customer_id=req.customer_id,
-        amount=req.amount,
-        billing_period=req.billing_period,
-        due_date=req.due_date,
-        tenant_id=req.tenant_id
-    )
-    return {"status": "success", "invoice_id": invoice.id}
+    from app.services import wallet_service
+    
+    if not user.is_superadmin:
+        req.tenant_id = user.tenant_id
+    elif not req.tenant_id:
+        req.tenant_id = 1
+        
+    try:
+        invoice = await billing_service.create_manual_invoice(
+            db=db,
+            customer_id=req.customer_id,
+            amount=req.amount,
+            billing_period=req.billing_period,
+            due_date=req.due_date,
+            tenant_id=req.tenant_id
+        )
+        return {"status": "success", "invoice_id": invoice.id}
+    except wallet_service.InsufficientBalanceError as e:
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(e))
 
 @router.post("/pay", status_code=status.HTTP_201_CREATED)
 async def api_record_payment(
     req: PaymentRequest,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db)
 ) -> dict[str, Any]:
     """Mencatat pembayaran untuk customer/invoice tertentu."""
+    if not user.is_superadmin:
+        req.tenant_id = user.tenant_id
+    elif not req.tenant_id:
+        req.tenant_id = 1
     payment = await billing_service.record_payment(
         db=db,
         customer_id=req.customer_id,
@@ -71,11 +91,16 @@ async def api_record_payment(
 
 @router.get("/invoices")
 async def api_list_invoices(
-    tenant_id: int = 1,
+    user: CurrentUser,
+    tenant_id: int | None = None,
     db: AsyncSession = Depends(get_db)
 ) -> list[dict[str, Any]]:
     """Mendapatkan daftar invoice milik tenant."""
-    invoices = await billing_service.get_invoices(db, tenant_id)
+    scope_tenant_id = _get_tenant_id(user) or tenant_id
+    if not scope_tenant_id and not user.is_superadmin:
+        scope_tenant_id = user.tenant_id
+    
+    invoices = await billing_service.get_invoices(db, scope_tenant_id or 1)
     return [
         {
             "id": inv.id,

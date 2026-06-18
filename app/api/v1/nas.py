@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, status
 
-from app.core.dependencies import CurrentUserId, DbSession
+from app.core.dependencies import SuperAdminUser, DbSession
 from app.models.nas_ext import NasExt
 from app.schemas.nas import NasCreateRequest, NasListResponse, NasRead, NasUpdateRequest
 from app.schemas.vendor_profiles import VendorProfileRead
@@ -40,7 +40,7 @@ def _build_nas_read(nas_core: object, nas_ext: NasExt) -> NasRead:
 @router.get("", response_model=NasListResponse, summary="List NAS")
 async def list_nas(
     db: DbSession,
-    user_id: CurrentUserId,
+    user_id: SuperAdminUser,
 ) -> NasListResponse:
     """List semua NAS yang visible untuk user."""
     pairs, total = await nas_service.list_nas(db, tenant_id=None)
@@ -59,7 +59,7 @@ async def list_nas(
 async def create_nas(
     data: NasCreateRequest,
     db: DbSession,
-    user_id: CurrentUserId,
+    user_id: SuperAdminUser,
 ) -> NasRead:
     """Daftarkan NAS baru dengan enkripsi shared secret otomatis."""
     try:
@@ -73,7 +73,7 @@ async def create_nas(
 async def get_nas(
     nas_id: int,
     db: DbSession,
-    user_id: CurrentUserId,
+    user_id: SuperAdminUser,
 ) -> NasRead:
     """Ambil detail NAS berdasarkan ID."""
     try:
@@ -88,7 +88,7 @@ async def update_nas(
     nas_id: int,
     data: NasUpdateRequest,
     db: DbSession,
-    user_id: CurrentUserId,
+    user_id: SuperAdminUser,
 ) -> NasRead:
     """Update NAS — shared_secret baru akan dienkripsi otomatis."""
     try:
@@ -102,7 +102,7 @@ async def update_nas(
 async def delete_nas(
     nas_id: int,
     db: DbSession,
-    user_id: CurrentUserId,
+    user_id: SuperAdminUser,
 ) -> None:
     """Hapus NAS dari sistem (NasCore + NasExt)."""
     try:

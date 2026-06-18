@@ -7,6 +7,7 @@ from pyrad.client import Timeout
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.customers import Customer
 from app.models.nas_ext import NasExt
 from app.models.radius_core import NasCore, RadAcct
 from app.radius.client import create_client
@@ -15,7 +16,7 @@ from app.radius.packet_builder import build_disconnect_request
 logger = logging.getLogger(__name__)
 
 
-async def kick_user(db: AsyncSession, radacctid: int) -> bool:
+async def kick_user(db: AsyncSession, radacctid: int, tenant_id: int | None = None) -> bool:
     """Memutus sesi pengguna secara paksa.
 
     1. Cari RadAcct berdasarkan ID.
@@ -30,6 +31,11 @@ async def kick_user(db: AsyncSession, radacctid: int) -> bool:
     if not acct:
         logger.error(f"Sesi dengan id {radacctid} tidak ditemukan.")
         return False
+
+    if tenant_id is not None:
+        customer = await db.scalar(select(Customer).where(Customer.radius_username == acct.username))
+        if customer and customer.tenant_id != tenant_id:
+            raise PermissionError("Sesi ini bukan milik tenant Anda")
 
     if acct.acctstoptime is not None:
         logger.info(f"Sesi {radacctid} sudah berstatus terputus.")

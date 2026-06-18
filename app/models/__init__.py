@@ -14,6 +14,7 @@ from app.models.nas_ext import NasExt  # noqa: F401
 from app.models.nas_vendor_profiles import NasVendorProfile, RateLimitFormat  # noqa: F401
 from app.models.packages import Package, PackageType  # noqa: F401
 from app.models.vouchers import VoucherBatch  # noqa: F401
+from app.models.wallet_transactions import TransactionType, WalletTransaction  # noqa: F401
 from app.models.invoices import Invoice, InvoiceStatus  # noqa: F401
 from app.models.payments import Payment, PaymentMethod  # noqa: F401
 
@@ -48,6 +49,8 @@ __all__ = [
     "InvoiceStatus",
     "Payment",
     "PaymentMethod",
+    "WalletTransaction",
+    "TransactionType",
     # FreeRADIUS core (read-only)
     "NasCore",
     "RadAcct",

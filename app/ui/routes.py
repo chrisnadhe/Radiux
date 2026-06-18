@@ -360,3 +360,67 @@ async def vendor_profile_form_edit(
         name="vendor_profiles/_modal_form.html",
         context={"request": request, "profile": profile, "current_user": user},
     )
+
+# ---------------------------------------------------------------------------
+# Tenants HTMX partials
+# ---------------------------------------------------------------------------
+
+@router.get("/tenants/table", response_class=HTMLResponse, include_in_schema=False)
+async def tenants_table(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    access_token: Annotated[str | None, Cookie()] = None,
+) -> HTMLResponse:
+    user = await _get_ui_user(access_token, db)
+    if not user or not user.is_superadmin:
+        return HTMLResponse("", status_code=403)
+        
+    from app.models.tenants import Tenant
+    from sqlalchemy import select
+    result = await db.scalars(select(Tenant).where(Tenant.id != 1).order_by(Tenant.id.desc()))
+    tenants = result.all()
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="tenants/_table.html",
+        context={"request": request, "tenants": tenants, "current_user": user},
+    )
+
+@router.get("/tenants/form", response_class=HTMLResponse, include_in_schema=False)
+async def tenant_form_create(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    access_token: Annotated[str | None, Cookie()] = None,
+) -> HTMLResponse:
+    user = await _get_ui_user(access_token, db)
+    if not user or not user.is_superadmin:
+        return HTMLResponse("", status_code=403)
+        
+    return templates.TemplateResponse(
+        request=request,
+        name="tenants/_modal_form.html",
+        context={"request": request, "current_user": user},
+    )
+
+@router.get("/tenants/{tenant_id}/topup", response_class=HTMLResponse, include_in_schema=False)
+async def tenant_form_topup(
+    tenant_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    access_token: Annotated[str | None, Cookie()] = None,
+) -> HTMLResponse:
+    user = await _get_ui_user(access_token, db)
+    if not user or not user.is_superadmin:
+        return HTMLResponse("", status_code=403)
+        
+    from app.models.tenants import Tenant
+    from sqlalchemy import select
+    tenant = await db.scalar(select(Tenant).where(Tenant.id == tenant_id))
+    if not tenant:
+        return HTMLResponse("<p>Tenant tidak ditemukan</p>", status_code=404)
+        
+    return templates.TemplateResponse(
+        request=request,
+        name="tenants/_modal_topup.html",
+        context={"request": request, "tenant": tenant, "current_user": user},
+    )

@@ -4,7 +4,7 @@ import math
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from app.core.dependencies import CurrentUserId, DbSession
+from app.core.dependencies import CurrentUser, DbSession
 from app.models.customers import CustomerStatus
 from app.schemas.customers import (
     CustomerCreate,
@@ -17,26 +17,24 @@ from app.services import customer_service
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
 
-def _tenant_scope(user_id: int) -> int | None:
-    """Placeholder scope helper — akan diganti dengan get_current_user di Phase 1 lengkap.
-
-    TODO: inject current user dari dependency dan ambil tenant_id-nya.
-    Sementara ini return None (superadmin mode) untuk memungkinkan testing.
-    """
-    return None  # noqa: RET504
+def _get_tenant_id(user: "AdminUser") -> int | None:
+    """Return tenant_id for scoping based on user role."""
+    if user.is_superadmin:
+        return None  # Superadmin can view all or filter specifically (not fully implemented yet)
+    return user.tenant_id
 
 
 @router.get("", response_model=CustomerListResponse, summary="List customers")
 async def list_customers(
     db: DbSession,
-    user_id: CurrentUserId,
+    user: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     search: str | None = Query(None, max_length=128),
     status: CustomerStatus | None = None,
 ) -> CustomerListResponse:
     """List customers dengan pagination dan optional search/filter."""
-    tenant_id = _tenant_scope(user_id)
+    tenant_id = _get_tenant_id(user)
     customers, total = await customer_service.list_customers(
         db,
         tenant_id=tenant_id,
@@ -64,9 +62,13 @@ async def list_customers(
 async def create_customer(
     data: CustomerCreate,
     db: DbSession,
-    user_id: CurrentUserId,
+    user: CurrentUser,
 ) -> CustomerRead:
     """Buat customer baru dan provision otomatis ke FreeRADIUS."""
+    # Enforce tenant_id for resellers
+    if not user.is_superadmin:
+        data.tenant_id = user.tenant_id
+
     try:
         customer = await customer_service.create_customer(db, data)
     except customer_service.CustomerUsernameConflictError as e:
@@ -78,10 +80,10 @@ async def create_customer(
 async def get_customer(
     customer_id: int,
     db: DbSession,
-    user_id: CurrentUserId,
+    user: CurrentUser,
 ) -> CustomerRead:
     """Ambil detail satu customer berdasarkan ID."""
-    tenant_id = _tenant_scope(user_id)
+    tenant_id = _get_tenant_id(user)
     try:
         customer = await customer_service.get_customer(db, customer_id, tenant_id)
     except customer_service.CustomerNotFoundError as e:
@@ -94,10 +96,10 @@ async def update_customer(
     customer_id: int,
     data: CustomerUpdate,
     db: DbSession,
-    user_id: CurrentUserId,
+    user: CurrentUser,
 ) -> CustomerRead:
     """Update data customer dan re-provision RADIUS jika diperlukan."""
-    tenant_id = _tenant_scope(user_id)
+    tenant_id = _get_tenant_id(user)
     try:
         customer = await customer_service.update_customer(db, customer_id, data, tenant_id)
     except customer_service.CustomerNotFoundError as e:
@@ -109,10 +111,10 @@ async def update_customer(
 async def delete_customer(
     customer_id: int,
     db: DbSession,
-    user_id: CurrentUserId,
+    user: CurrentUser,
 ) -> None:
     """Hapus customer dan semua data RADIUS-nya."""
-    tenant_id = _tenant_scope(user_id)
+    tenant_id = _get_tenant_id(user)
     try:
         await customer_service.delete_customer(db, customer_id, tenant_id)
     except customer_service.CustomerNotFoundError as e:

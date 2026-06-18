@@ -13,6 +13,7 @@ from app.models.customers import Customer, CustomerStatus
 from app.models.packages import Package
 from app.models.radius_core import RadCheck, RadUserGroup
 from app.models.vouchers import VoucherBatch
+from app.services import wallet_service
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,17 @@ async def create_voucher_batch(
     pkg = await db.scalar(select(Package).where(Package.id == package_id))
     if not pkg:
         raise ValueError("Package tidak ditemukan")
+
+    total_cost = float(pkg.price) * qty
+    
+    # Lakukan pemotongan saldo wallet (akan throw InsufficientBalanceError jika gagal)
+    if total_cost > 0:
+        await wallet_service.deduct_balance(
+            db=db,
+            tenant_id=tenant_id,
+            amount=total_cost,
+            notes=f"Generate {qty} voucher untuk paket {pkg.name}"
+        )
 
     # Buat record Batch
     batch = VoucherBatch(

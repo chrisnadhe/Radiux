@@ -13,6 +13,7 @@ from app.models.packages import Package, PackageType
 from app.models.payments import Payment, PaymentMethod
 from sqlalchemy.orm import joinedload
 from app.services.coa_service import kick_user
+from app.services import wallet_service
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,21 @@ async def generate_monthly_invoices(db: AsyncSession) -> int:
             continue
             
         inv_number = f"INV-{current_date.strftime('%Y%m')}-{cust.id:04d}"
-        
+        # Potong saldo reseller
+        try:
+            if cust.tenant_id != 1:  # Jangan potong superadmin
+                await wallet_service.deduct_balance(
+                    db=db,
+                    tenant_id=cust.tenant_id,
+                    amount=cust.package.price,
+                    notes=f"Tagihan bulanan postpaid customer {cust.id} ({cust.full_name})"
+                )
+        except wallet_service.InsufficientBalanceError:
+            logger.warning(f"Saldo tenant {cust.tenant_id} tidak cukup untuk invoice customer {cust.id}. Suspending customer.")
+            cust.status = CustomerStatus.SUSPENDED
+            # Note: We just suspend in DB. RADIUS will reject next auth.
+            continue
+            
         invoice = Invoice(
             invoice_number=inv_number,
             customer_id=cust.id,
@@ -78,7 +93,16 @@ async def create_manual_invoice(
 ) -> Invoice:
     """Membuat invoice satuan secara manual untuk pelanggan tertentu."""
     inv_number = f"INV-{date.today().strftime('%Y%m')}-{customer_id:04d}-M"
-    
+    # Potong saldo reseller
+    if tenant_id != 1:
+        # Akan throw InsufficientBalanceError jika gagal, API akan catch
+        await wallet_service.deduct_balance(
+            db=db,
+            tenant_id=tenant_id,
+            amount=amount,
+            notes=f"Manual invoice customer {customer_id}"
+        )
+        
     invoice = Invoice(
         invoice_number=inv_number,
         customer_id=customer_id,

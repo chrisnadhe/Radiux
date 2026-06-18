@@ -155,22 +155,33 @@ async def dashboard(
     if user is None:
         return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
 
+    scope_tenant_id = None if user.is_superadmin else user.tenant_id
+
     # Ambil stats dari service layer
-    customers, total_customers = await customer_service.list_customers(db, tenant_id=None, page=1, page_size=1)
+    customers, total_customers = await customer_service.list_customers(db, tenant_id=scope_tenant_id, page=1, page_size=1)
     active_customers, active_total = await customer_service.list_customers(
         db,
-        tenant_id=None,
+        tenant_id=scope_tenant_id,
         page=1,
         page_size=1,
         status=customer_service.CustomerStatus.ACTIVE,
     )
     packages, total_packages = await package_service.list_packages(db, tenant_id=None, include_inactive=False)
-    nas_pairs, total_nas = await nas_service.list_nas(db, tenant_id=None)
+    nas_pairs, total_nas = await nas_service.list_nas(db, tenant_id=scope_tenant_id)
 
     # Ambil sesi aktif untuk ringkasan
-    active_sessions = await monitoring_service.get_active_sessions(db, tenant_id=None)
+    active_sessions = await monitoring_service.get_active_sessions(db, tenant_id=scope_tenant_id)
 
     from types import SimpleNamespace
+
+    # Ambil balance jika reseller
+    wallet_balance = 0.0
+    if not user.is_superadmin:
+        from app.models.tenants import Tenant
+        from sqlalchemy import select
+        tenant_obj = await db.scalar(select(Tenant).where(Tenant.id == user.tenant_id))
+        if tenant_obj:
+            wallet_balance = float(tenant_obj.balance)
 
     stats = SimpleNamespace(
         total_customers=total_customers,
@@ -178,6 +189,7 @@ async def dashboard(
         total_packages=total_packages,
         total_nas=total_nas,
         active_sessions=len(active_sessions),
+        wallet_balance=wallet_balance,
     )
 
     return templates.TemplateResponse(
@@ -201,7 +213,8 @@ async def customers_page(
     if user is None:
         return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
 
-    customers, total = await customer_service.list_customers(db, tenant_id=None, page=1, page_size=20)
+    scope_tenant_id = None if user.is_superadmin else user.tenant_id
+    customers, total = await customer_service.list_customers(db, tenant_id=scope_tenant_id, page=1, page_size=20)
     packages, _ = await package_service.list_packages(db, tenant_id=None, include_inactive=False)
     pages = math.ceil(total / 20) if total else 0
 
@@ -261,7 +274,8 @@ async def nas_page(
     if user is None:
         return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
 
-    pairs, _ = await nas_service.list_nas(db, tenant_id=None)
+    scope_tenant_id = None if user.is_superadmin else user.tenant_id
+    pairs, _ = await nas_service.list_nas(db, tenant_id=scope_tenant_id)
     from app.ui.routes import _build_nas_ctx
 
     nas_list = [_build_nas_ctx(core, ext) for core, ext in pairs]
@@ -293,6 +307,37 @@ async def vendor_profiles_page(
         request=request,
         name="vendor_profiles/index.html",
         context=_base_ctx(request, user, active_page="vendor_profiles", profiles=profiles),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Page: Tenants & Resellers
+# ---------------------------------------------------------------------------
+@app.get("/tenants", response_class=HTMLResponse, include_in_schema=False)
+async def tenants_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Halaman manajemen tenants / resellers."""
+    access_token = request.cookies.get("access_token")
+    user = await _resolve_user(access_token, db)
+    if user is None:
+        return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
+        
+    if not user.is_superadmin:
+        # Redirect reseller ke halaman dashboard jika mencoba akses ini
+        return RedirectResponse(url="/", status_code=302)  # type: ignore[return-value]
+
+    from app.models.tenants import Tenant
+    from sqlalchemy import select
+    
+    result = await db.scalars(select(Tenant).where(Tenant.id != 1).order_by(Tenant.id.desc()))
+    tenants = result.all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="tenants/index.html",
+        context=_base_ctx(request, user, active_page="tenants", tenants=tenants),
     )
 
 
@@ -331,7 +376,8 @@ async def vouchers_page(
         return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
 
     from app.services import voucher_service, package_service
-    batches = await voucher_service.get_voucher_batches(db, tenant_id=1)
+    scope_tenant_id = None if user.is_superadmin else user.tenant_id
+    batches = await voucher_service.get_voucher_batches(db, tenant_id=scope_tenant_id or 1)
     packages, _ = await package_service.list_packages(db, tenant_id=None, include_inactive=False)
 
     return templates.TemplateResponse(
@@ -355,7 +401,8 @@ async def print_vouchers_page(
     from app.services import voucher_service
     from fastapi import HTTPException
     
-    vouchers = await voucher_service.get_vouchers_by_batch(db, batch_id, tenant_id=1)
+    scope_tenant_id = None if user.is_superadmin else user.tenant_id
+    vouchers = await voucher_service.get_vouchers_by_batch(db, batch_id, tenant_id=scope_tenant_id or 1)
     if not vouchers:
         raise HTTPException(status_code=404, detail="Batch tidak ditemukan")
 
@@ -380,10 +427,11 @@ async def billing_page(
         return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
 
     from app.services import billing_service, customer_service
-    invoices = await billing_service.get_invoices(db, tenant_id=1)
+    scope_tenant_id = None if user.is_superadmin else user.tenant_id
+    invoices = await billing_service.get_invoices(db, tenant_id=scope_tenant_id or 1)
     
     # Ambil customer untuk dropdown manual invoice
-    customers, _ = await customer_service.list_customers(db, tenant_id=1, page=1, page_size=1000)
+    customers, _ = await customer_service.list_customers(db, tenant_id=scope_tenant_id, page=1, page_size=1000)
 
     return templates.TemplateResponse(
         request=request,
@@ -404,7 +452,10 @@ async def print_invoice_page(
         return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
 
     from app.services import billing_service
-    invoice = await billing_service.get_invoice_with_customer(db, invoice_id, tenant_id=1)
+    from fastapi import HTTPException
+    
+    scope_tenant_id = None if user.is_superadmin else user.tenant_id
+    invoice = await billing_service.get_invoice_with_customer(db, invoice_id, tenant_id=scope_tenant_id or 1)
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice tidak ditemukan")
 

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from app.core.dependencies import CurrentUserId, DbSession
+from app.core.dependencies import CurrentUser, DbSession, SuperAdminUser
 from app.schemas.packages import (
     PackageCreate,
     PackageListResponse,
@@ -17,10 +17,11 @@ router = APIRouter(prefix="/packages", tags=["Packages"])
 @router.get("", response_model=PackageListResponse, summary="List packages")
 async def list_packages(
     db: DbSession,
-    user_id: CurrentUserId,
+    user: CurrentUser,
     include_inactive: bool = Query(False),
 ) -> PackageListResponse:
     """List semua package yang visible untuk user yang login."""
+    # For phase 6, all tenants can view all packages. If packages become tenant-specific, we will scope it here.
     packages, total = await package_service.list_packages(db, tenant_id=None, include_inactive=include_inactive)
     return PackageListResponse(
         items=[PackageRead.model_validate(p) for p in packages],
@@ -37,7 +38,7 @@ async def list_packages(
 async def create_package(
     data: PackageCreate,
     db: DbSession,
-    user_id: CurrentUserId,
+    user: SuperAdminUser,
 ) -> PackageRead:
     """Buat package baru dan sync ke RADIUS group."""
     try:
@@ -51,7 +52,7 @@ async def create_package(
 async def get_package(
     package_id: int,
     db: DbSession,
-    user_id: CurrentUserId,
+    user: CurrentUser,
 ) -> PackageRead:
     """Ambil detail satu package."""
     try:
@@ -66,7 +67,7 @@ async def update_package(
     package_id: int,
     data: PackageUpdate,
     db: DbSession,
-    user_id: CurrentUserId,
+    user: SuperAdminUser,
 ) -> PackageRead:
     """Update package dan re-sync RADIUS group attributes."""
     try:
@@ -80,7 +81,7 @@ async def update_package(
 async def delete_package(
     package_id: int,
     db: DbSession,
-    user_id: CurrentUserId,
+    user: SuperAdminUser,
 ) -> None:
     """Hapus package dan entri RADIUS group-nya."""
     try:
