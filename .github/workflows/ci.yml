@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PYTHON_VERSION: "3.14"
+  PYTHON_VERSION: "3.13"
   UV_VERSION: "latest"
 
 jobs:
@@ -36,7 +36,7 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync --extra dev
 
       - name: Run ruff check (linter)
         run: uv run ruff check . --output-format=github
@@ -71,7 +71,7 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies (with dev)
-        run: uv sync --dev
+        run: uv sync --extra dev
 
       - name: Run unit tests
         run: uv run pytest tests/ -m "not integration" -v --tb=short
@@ -118,7 +118,7 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync --extra dev
 
       - name: Apply FreeRADIUS schema
         run: |
