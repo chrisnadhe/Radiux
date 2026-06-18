@@ -46,9 +46,7 @@ def create_access_token(
         JWT string yang sudah di-sign.
 
     """
-    expire = datetime.now(UTC) + (
-        expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
-    )
+    expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=settings.access_token_expire_minutes))
     payload: dict[str, Any] = {
         "sub": str(subject),
         "exp": expire,

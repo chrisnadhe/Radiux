@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     debug: bool = False
     secret_key: str
-    allowed_hosts: list[str] = ["localhost", "127.0.0.1"]
+    allowed_hosts: str | list[str] = ["localhost", "127.0.0.1"]
 
     # -----------------------------------------------------------------------
     # Database
@@ -47,9 +47,7 @@ class Settings(BaseSettings):
             db = values.get("postgres_db", "radiux_db")
             user = values.get("postgres_user", "radiux_user")
             password = values.get("postgres_password", "")
-            values["database_url"] = (
-                f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
-            )
+            values["database_url"] = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{db}"
         return values
 
     # -----------------------------------------------------------------------
@@ -75,8 +73,7 @@ class Settings(BaseSettings):
     app_name: str = "Radiux"
     app_version: str = "0.1.0"
     app_description: str = (
-        "Web UI modern untuk mengelola FreeRADIUS — "
-        "AAA, Hotspot, Billing/Voucher, dan Multi-Reseller untuk ISP"
+        "Web UI modern untuk mengelola FreeRADIUS — AAA, Hotspot, Billing/Voucher, dan Multi-Reseller untuk ISP"
     )
 
     @field_validator("allowed_hosts", mode="before")
