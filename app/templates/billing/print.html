@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice - {{ invoice.invoice_number }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body { background: white; margin: 0; padding: 0; }
+            .print\:hidden { display: none !important; }
+            .print\:shadow-none { box-shadow: none !important; }
+            .print\:border-none { border: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8 text-slate-800 font-sans print:p-0">
+
+    <div class="max-w-3xl mx-auto mb-6 print:hidden flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold">Cetak Invoice</h1>
+            <p class="text-gray-500 text-sm">Tekan Ctrl+P / Command+P untuk mencetak</p>
+        </div>
+        <button onclick="window.print()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow flex items-center gap-2 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            Print
+        </button>
+    </div>
+
+    <div class="max-w-3xl mx-auto bg-white border border-gray-200 shadow-sm p-10 print:border-none print:shadow-none print:p-0">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-start border-b border-gray-200 pb-8 mb-8">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800 tracking-tight">INVOICE</h2>
+                <div class="mt-2 text-sm text-gray-500">No. {{ invoice.invoice_number }}</div>
+            </div>
+            <div class="text-right">
+                <div class="text-xl font-bold text-blue-600">RADIUX ISP</div>
+                <div class="text-sm text-gray-500 mt-1">
+                    Jl. Internet Cepat No. 1<br>
+                    Kota Teknologi, 12345<br>
+                    support@radiux.local
+                </div>
+            </div>
+        </div>
+
+        <!-- Info -->
+        <div class="flex justify-between mb-8">
+            <div>
+                <div class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-1">Ditagihkan Kepada:</div>
+                <div class="text-lg font-bold text-gray-800">{{ invoice.customer.full_name }}</div>
+                <div class="text-sm text-gray-600 mt-1">{{ invoice.customer.phone }}</div>
+                <div class="text-sm text-gray-600">{{ invoice.customer.address or '-' }}</div>
+            </div>
+            <div class="text-right flex flex-col gap-2">
+                <div>
+                    <div class="text-xs font-semibold text-gray-400 uppercase">Periode Tagihan</div>
+                    <div class="text-sm font-medium">{{ invoice.billing_period }}</div>
+                </div>
+                <div>
+                    <div class="text-xs font-semibold text-gray-400 uppercase">Tanggal Jatuh Tempo</div>
+                    <div class="text-sm font-medium">{{ invoice.due_date }}</div>
+                </div>
+                <div>
+                    <div class="text-xs font-semibold text-gray-400 uppercase">Status</div>
+                    {% if invoice.status == 'paid' %}
+                    <div class="inline-block mt-1 px-3 py-1 bg-green-100 text-green-700 font-bold text-sm rounded-full">LUNAS</div>
+                    <div class="text-xs text-gray-500 mt-1">Dibayar: {{ invoice.paid_at.strftime('%d %b %Y %H:%M') }}</div>
+                    {% elif invoice.status == 'unpaid' %}
+                    <div class="inline-block mt-1 px-3 py-1 bg-red-100 text-red-700 font-bold text-sm rounded-full">BELUM BAYAR</div>
+                    {% else %}
+                    <div class="inline-block mt-1 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-sm rounded-full">DIBATALKAN</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <table class="w-full text-left mb-8">
+            <thead>
+                <tr class="border-b border-gray-200 text-sm text-gray-600">
+                    <th class="py-3 font-semibold">Deskripsi Layanan</th>
+                    <th class="py-3 font-semibold text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="border-b border-gray-100">
+                    <td class="py-4">
+                        <div class="font-medium text-gray-800">Biaya Layanan Internet Pascabayar</div>
+                        <div class="text-sm text-gray-500">Periode: {{ invoice.billing_period }}</div>
+                    </td>
+                    <td class="py-4 text-right font-medium text-gray-800">Rp {{ '{:,.0f}'.format(invoice.amount) }}</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td class="py-4 text-right font-bold text-gray-700 uppercase tracking-wide text-sm">Total Tagihan</td>
+                    <td class="py-4 text-right font-bold text-xl text-gray-900">Rp {{ '{:,.0f}'.format(invoice.amount) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <!-- Footer -->
+        <div class="mt-16 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
+            Terima kasih atas kepercayaan Anda menggunakan layanan kami.<br>
+            Untuk pertanyaan lebih lanjut, silakan hubungi tim dukungan kami.
+        </div>
+    </div>
+
+</body>
+</html>

@@ -13,6 +13,9 @@ from app.models.customers import Customer, CustomerStatus  # noqa: F401
 from app.models.nas_ext import NasExt  # noqa: F401
 from app.models.nas_vendor_profiles import NasVendorProfile, RateLimitFormat  # noqa: F401
 from app.models.packages import Package, PackageType  # noqa: F401
+from app.models.vouchers import VoucherBatch  # noqa: F401
+from app.models.invoices import Invoice, InvoiceStatus  # noqa: F401
+from app.models.payments import Payment, PaymentMethod  # noqa: F401
 
 # Tabel inti FreeRADIUS (tidak dikelola Alembic — schema.sql)
 from app.models.radius_core import (  # noqa: F401
@@ -40,6 +43,11 @@ __all__ = [
     "RateLimitFormat",
     "Tenant",
     "TenantStatus",
+    "VoucherBatch",
+    "Invoice",
+    "InvoiceStatus",
+    "Payment",
+    "PaymentMethod",
     # FreeRADIUS core (read-only)
     "NasCore",
     "RadAcct",

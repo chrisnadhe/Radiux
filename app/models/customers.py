@@ -60,6 +60,16 @@ class Customer(Base):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
+    # Khusus untuk voucher
+    is_voucher: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    voucher_batch_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("voucher_batches.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    voucher_password: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     # Relasi ke paket (FK ke packages)
     package_id: Mapped[int | None] = mapped_column(
         BigInteger,
@@ -90,6 +100,7 @@ class Customer(Base):
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", foreign_keys=[tenant_id])  # type: ignore[name-defined]  # noqa: F821
     package: Mapped["Package | None"] = relationship("Package", back_populates="customers")  # type: ignore[name-defined]  # noqa: F821
+    voucher_batch: Mapped["VoucherBatch | None"] = relationship("VoucherBatch", back_populates="vouchers")  # type: ignore[name-defined]  # noqa: F821
 
     def __repr__(self) -> str:
         return f"<Customer id={self.id} username={self.radius_username!r} status={self.status}>"

@@ -22,6 +22,7 @@ from app.services import (
     nas_service,
     package_service,
     vendor_profile_service,
+    scheduler_service,
 )
 from app.ui.routes import router as ui_router
 
@@ -34,7 +35,9 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:  # noqa: ARG001
     """Jalankan inisialisasi saat startup dan cleanup saat shutdown."""
+    scheduler_service.start_scheduler()
     yield
+    scheduler_service.stop_scheduler()
 
 
 # ---------------------------------------------------------------------------
@@ -311,4 +314,102 @@ async def monitoring_page(
         request=request,
         name="monitoring/dashboard.html",
         context=_base_ctx(request, user, active_page="monitoring"),
+    )
+
+# ---------------------------------------------------------------------------
+# Page: Vouchers
+# ---------------------------------------------------------------------------
+@app.get("/vouchers", response_class=HTMLResponse, include_in_schema=False)
+async def vouchers_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Halaman manajemen voucher prabayar."""
+    access_token = request.cookies.get("access_token")
+    user = await _resolve_user(access_token, db)
+    if user is None:
+        return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
+
+    from app.services import voucher_service, package_service
+    batches = await voucher_service.get_voucher_batches(db, tenant_id=1)
+    packages, _ = await package_service.list_packages(db, tenant_id=None, include_inactive=False)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="vouchers/index.html",
+        context=_base_ctx(request, user, active_page="vouchers", batches=batches, packages=packages),
+    )
+
+@app.get("/vouchers/{batch_id}/print", response_class=HTMLResponse, include_in_schema=False)
+async def print_vouchers_page(
+    request: Request,
+    batch_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Halaman cetak HTML voucher."""
+    access_token = request.cookies.get("access_token")
+    user = await _resolve_user(access_token, db)
+    if user is None:
+        return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
+
+    from app.services import voucher_service
+    from fastapi import HTTPException
+    
+    vouchers = await voucher_service.get_vouchers_by_batch(db, batch_id, tenant_id=1)
+    if not vouchers:
+        raise HTTPException(status_code=404, detail="Batch tidak ditemukan")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="vouchers/print.html",
+        context=_base_ctx(request, user, active_page="vouchers", batch_id=batch_id, vouchers=vouchers),
+    )
+
+# ---------------------------------------------------------------------------
+# Page: Billing & Invoices
+# ---------------------------------------------------------------------------
+@app.get("/billing", response_class=HTMLResponse, include_in_schema=False)
+async def billing_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Halaman manajemen tagihan pascabayar."""
+    access_token = request.cookies.get("access_token")
+    user = await _resolve_user(access_token, db)
+    if user is None:
+        return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
+
+    from app.services import billing_service, customer_service
+    invoices = await billing_service.get_invoices(db, tenant_id=1)
+    
+    # Ambil customer untuk dropdown manual invoice
+    customers, _ = await customer_service.list_customers(db, tenant_id=1, page=1, page_size=1000)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="billing/index.html",
+        context=_base_ctx(request, user, active_page="billing", invoices=invoices, customers=customers),
+    )
+
+@app.get("/billing/{invoice_id}/print", response_class=HTMLResponse, include_in_schema=False)
+async def print_invoice_page(
+    invoice_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Halaman cetak invoice."""
+    access_token = request.cookies.get("access_token")
+    user = await _resolve_user(access_token, db)
+    if user is None:
+        return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
+
+    from app.services import billing_service
+    invoice = await billing_service.get_invoice_with_customer(db, invoice_id, tenant_id=1)
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice tidak ditemukan")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="billing/print.html",
+        context=_base_ctx(request, user, active_page="billing", invoice=invoice),
     )
