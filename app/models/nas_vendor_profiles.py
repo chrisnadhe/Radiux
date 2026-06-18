@@ -79,7 +79,7 @@ class NasVendorProfile(Base):
 
     # Format penghitungan nilai atribut
     rate_limit_format: Mapped[RateLimitFormat] = mapped_column(
-        Enum(RateLimitFormat, name="rate_limit_format_enum"),
+        Enum(RateLimitFormat, name="rate_limit_format_enum", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=RateLimitFormat.NONE,
     )

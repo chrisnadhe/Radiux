@@ -42,7 +42,7 @@ class Package(Base):
     group_name: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     package_type: Mapped[PackageType] = mapped_column(
-        Enum(PackageType, name="package_type_enum"),
+        Enum(PackageType, name="package_type_enum", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=PackageType.PREPAID,
     )

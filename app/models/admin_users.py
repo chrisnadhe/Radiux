@@ -35,7 +35,7 @@ class AdminUser(Base):
     hashed_password: Mapped[str] = mapped_column(String(128), nullable=False)
     full_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     role: Mapped[AdminRole] = mapped_column(
-        Enum(AdminRole, name="admin_role_enum"),
+        Enum(AdminRole, name="admin_role_enum", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=AdminRole.OPERATOR,
     )

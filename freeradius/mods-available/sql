@@ -4,11 +4,11 @@ sql {
     driver = "rlm_sql_postgresql"
 
     # Koneksi ke PostgreSQL (value di-inject via environment di container)
-    server = "${env:POSTGRES_HOST}"
-    port = "${env:POSTGRES_PORT}"
-    login = "${env:POSTGRES_USER}"
-    password = "${env:POSTGRES_PASSWORD}"
-    radius_db = "${env:POSTGRES_DB}"
+    server = "$ENV{POSTGRES_HOST}"
+    port = "$ENV{POSTGRES_PORT}"
+    login = "$ENV{POSTGRES_USER}"
+    password = "$ENV{POSTGRES_PASSWORD}"
+    radius_db = "$ENV{POSTGRES_DB}"
 
     # Query config
     query_file = "${modconfdir}/${.:name}/main/${dialect}/queries.conf"

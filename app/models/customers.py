@@ -53,7 +53,7 @@ class Customer(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     status: Mapped[CustomerStatus] = mapped_column(
-        Enum(CustomerStatus, name="customer_status_enum"),
+        Enum(CustomerStatus, name="customer_status_enum", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=CustomerStatus.ACTIVE,
         index=True,
