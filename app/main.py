@@ -163,7 +163,7 @@ async def dashboard(
     )
     packages, total_packages = await package_service.list_packages(db, tenant_id=None, include_inactive=False)
     nas_pairs, total_nas = await nas_service.list_nas(db, tenant_id=None)
-    
+
     # Ambil sesi aktif untuk ringkasan
     active_sessions = await monitoring_service.get_active_sessions(db, tenant_id=None)
 
