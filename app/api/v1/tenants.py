@@ -19,6 +19,14 @@ router = APIRouter(prefix="/tenants", tags=["Tenants"])
 class TenantCreate(BaseModel):
     name: str
     slug: str
+    telegram_chat_id: str | None = None
+    notes: str | None = None
+
+
+class TenantUpdate(BaseModel):
+    name: str | None = None
+    slug: str | None = None
+    telegram_chat_id: str | None = None
     notes: str | None = None
 
 
@@ -29,6 +37,7 @@ class TenantResponse(BaseModel):
     status: str
     balance: float
     is_active: bool
+    telegram_chat_id: str | None = None
     notes: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -54,8 +63,29 @@ async def create_tenant(req: TenantCreate, user: CurrentUser, db: AsyncSession =
     if not user.is_superadmin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Akses ditolak")
 
-    tenant = Tenant(name=req.name, slug=req.slug, notes=req.notes)
+    tenant = Tenant(name=req.name, slug=req.slug, telegram_chat_id=req.telegram_chat_id, notes=req.notes)
     db.add(tenant)
+    await db.commit()
+    await db.refresh(tenant)
+    return tenant
+
+
+@router.patch("/{tenant_id}", response_model=TenantResponse)
+async def update_tenant(
+    tenant_id: int, req: TenantUpdate, user: CurrentUser, db: AsyncSession = Depends(get_db)
+) -> Tenant:
+    """Update tenant."""
+    if not user.is_superadmin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Akses ditolak")
+
+    tenant = await db.scalar(select(Tenant).where(Tenant.id == tenant_id))
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant tidak ditemukan")
+
+    update_data = req.model_dump(exclude_none=True)
+    for field, value in update_data.items():
+        setattr(tenant, field, value)
+
     await db.commit()
     await db.refresh(tenant)
     return tenant

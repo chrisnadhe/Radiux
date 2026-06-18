@@ -404,7 +404,32 @@ async def tenant_form_create(
     return templates.TemplateResponse(
         request=request,
         name="tenants/_modal_form.html",
-        context={"request": request, "current_user": user},
+        context={"request": request, "tenant": None, "current_user": user},
+    )
+
+
+@router.get("/tenants/{tenant_id}/edit", response_class=HTMLResponse, include_in_schema=False)
+async def tenant_form_edit(
+    tenant_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    access_token: Annotated[str | None, Cookie()] = None,
+) -> HTMLResponse:
+    user = await _get_ui_user(access_token, db)
+    if not user or not user.is_superadmin:
+        return HTMLResponse("", status_code=403)
+
+    from sqlalchemy import select
+
+    from app.models.tenants import Tenant
+    tenant = await db.scalar(select(Tenant).where(Tenant.id == tenant_id))
+    if not tenant:
+        return HTMLResponse("Tenant not found", status_code=404)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="tenants/_modal_form.html",
+        context={"request": request, "tenant": tenant, "current_user": user},
     )
 
 

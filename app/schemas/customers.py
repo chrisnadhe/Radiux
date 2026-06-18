@@ -16,6 +16,7 @@ class CustomerBase(BaseModel):
     phone: str | None = Field(None, max_length=32)
     address: str | None = None
     notes: str | None = None
+    telegram_chat_id: str | None = Field(None, max_length=64)
 
     @model_validator(mode="before")
     @classmethod

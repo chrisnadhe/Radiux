@@ -51,6 +51,7 @@ class Customer(Base):
     phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    telegram_chat_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
 
     status: Mapped[CustomerStatus] = mapped_column(
         Enum(CustomerStatus, name="customer_status_enum", values_callable=lambda x: [e.value for e in x]),

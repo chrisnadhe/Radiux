@@ -1,3 +1,5 @@
+{% set is_edit = tenant is not none %}
+
 <div id="tenant-modal"
      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto"
      x-data="{ show: false }"
@@ -16,7 +18,7 @@
          x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
          
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-            <h3 class="text-lg font-bold text-white">Tambah Reseller</h3>
+            <h3 class="text-lg font-bold text-white">{{ 'Edit Reseller' if is_edit else 'Tambah Reseller' }}</h3>
             <button type="button" @click="show = false; setTimeout(() => $el.closest('#tenant-modal').remove(), 200)" class="text-slate-400 hover:text-white transition-colors">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -24,7 +26,11 @@
             </button>
         </div>
         
-        <form hx-post="/api/v1/tenants"
+        <form {% if is_edit %}
+              hx-patch="/api/v1/tenants/{{ tenant.id }}"
+              {% else %}
+              hx-post="/api/v1/tenants"
+              {% endif %}
               hx-ext="json-enc"
               hx-on::after-request="if(event.detail.successful) { window.location.reload(); }"
               class="p-6 space-y-5">
@@ -32,6 +38,7 @@
             <div>
                 <label class="block text-sm font-medium text-slate-300 mb-1.5">Nama Reseller</label>
                 <input type="text" name="name" required
+                       value="{{ tenant.name if is_edit else '' }}"
                        class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder-slate-500"
                        placeholder="Contoh: Mitra ISP Abadi" />
             </div>
@@ -39,16 +46,26 @@
             <div>
                 <label class="block text-sm font-medium text-slate-300 mb-1.5">Slug</label>
                 <input type="text" name="slug" required
-                       class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder-slate-500"
+                       value="{{ tenant.slug if is_edit else '' }}"
+                       {% if is_edit %}readonly{% endif %}
+                       class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder-slate-500 {% if is_edit %}opacity-50 cursor-not-allowed{% endif %}"
                        placeholder="Contoh: mitra-abadi" />
                 <p class="text-xs text-slate-500 mt-1.5">Slug unik tanpa spasi.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Telegram Chat ID (Opsional)</label>
+                <input type="text" name="telegram_chat_id"
+                       value="{{ tenant.telegram_chat_id if is_edit and tenant.telegram_chat_id else '' }}"
+                       class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder-slate-500"
+                       placeholder="Contoh: 123456789" />
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-slate-300 mb-1.5">Catatan (Opsional)</label>
                 <textarea name="notes" rows="2"
                           class="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder-slate-500"
-                          placeholder="Kontak, alamat, dsb."></textarea>
+                          placeholder="Kontak, alamat, dsb.">{{ tenant.notes if is_edit and tenant.notes else '' }}</textarea>
             </div>
 
             <div class="pt-2 flex justify-end gap-3">
@@ -58,7 +75,7 @@
                 </button>
                 <button type="submit"
                         class="px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-500 rounded-xl transition-colors shadow-lg shadow-brand-500/20">
-                    Simpan
+                    {{ 'Simpan Perubahan' if is_edit else 'Simpan' }}
                 </button>
             </div>
         </form>

@@ -144,6 +144,7 @@ async def create_customer(
         phone=data.phone,
         address=data.address,
         notes=data.notes,
+        telegram_chat_id=data.telegram_chat_id,
         status=CustomerStatus.ACTIVE,
         is_active=True,
         package_id=data.package_id,
