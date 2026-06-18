@@ -1,0 +1,3 @@
+# Tailwind CSS build output (production)
+# File ini adalah output dari: npx tailwindcss -i ./app/static/css/input.css -o ./app/static/css/styles.min.css --minify
+# Jangan edit manual — generate ulang dengan: npm run build:css

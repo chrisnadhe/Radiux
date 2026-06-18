@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block meta_description %}Radiux Dashboard — panel operasional ISP untuk mengelola FreeRADIUS, pelanggan, NAS, billing, dan monitoring real-time.{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen flex-col items-center justify-center px-4 py-16">
+
+    {# Hero section #}
+    <div class="text-center max-w-2xl mx-auto">
+
+        {# Logo / wordmark #}
+        <div class="mb-8 flex items-center justify-center gap-3">
+            <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 shadow-lg shadow-brand-600/40">
+                <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                </svg>
+            </div>
+            <span class="text-3xl font-bold tracking-tight text-white">{{ app_name }}</span>
+        </div>
+
+        {# Tagline #}
+        <h1 class="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+            Kelola FreeRADIUS<br/>
+            <span class="text-brand-400">dengan mudah.</span>
+        </h1>
+        <p class="mt-4 text-lg text-slate-400 leading-relaxed">
+            Panel operasional tunggal untuk ISP — AAA, Hotspot, Billing/Voucher,
+            Multi-Reseller, dan monitoring real-time dengan dukungan multi-vendor NAS.
+        </p>
+
+        {# Status badges #}
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-3 py-1 text-sm font-medium text-slate-300 ring-1 ring-slate-700">
+                <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                Phase 0 — Foundation
+            </span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-3 py-1 text-sm font-medium text-slate-300 ring-1 ring-slate-700">
+                v{{ app_version }}
+            </span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-3 py-1 text-sm font-medium text-slate-300 ring-1 ring-slate-700">
+                FastAPI + HTMX + PostgreSQL
+            </span>
+        </div>
+
+        {# CTA — akan di-ganti link ke /login saat Phase 1 selesai #}
+        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="/docs"
+               class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-all duration-200 hover:bg-brand-500 hover:shadow-brand-500/40 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-slate-950">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                API Docs
+            </a>
+            <a href="/health"
+               class="inline-flex items-center gap-2 rounded-xl bg-slate-800 px-6 py-3 text-sm font-semibold text-slate-300 ring-1 ring-slate-700 transition-all duration-200 hover:bg-slate-700 hover:text-white hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-slate-600 focus:ring-offset-2 focus:ring-offset-slate-950">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Health Check
+            </a>
+        </div>
+    </div>
+
+    {# Feature grid — preview fitur yang akan dibangun #}
+    <div class="mt-20 w-full max-w-4xl">
+        <p class="text-center text-sm font-medium text-slate-500 uppercase tracking-widest mb-8">Fitur dalam Roadmap</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+            {% set features = [
+                ("🔐", "AAA & Hotspot", "Kelola user, NAS, profil bandwidth, dan dictionary multi-vendor."),
+                ("📡", "Real-time Monitoring", "Pantau sesi aktif, trafik, dan status NAS secara live via SSE."),
+                ("⚡", "CoA & Disconnect", "Putuskan atau ganti paket user on-the-fly tanpa re-login."),
+                ("🧾", "Billing & Voucher", "Paket prepaid/postpaid, generate voucher batch, dan invoice."),
+                ("🏢", "Multi-Tenant", "Isolasi data per reseller dengan RBAC penuh."),
+                ("📊", "Laporan & Audit", "Revenue, penggunaan, dan audit log semua aksi admin."),
+            ] %}
+
+            {% for icon, title, desc in features %}
+            <div class="group rounded-2xl bg-slate-900 p-5 ring-1 ring-slate-800 transition-all duration-200 hover:ring-brand-700 hover:bg-slate-800/80">
+                <div class="text-2xl mb-3">{{ icon }}</div>
+                <h3 class="text-sm font-semibold text-white mb-1">{{ title }}</h3>
+                <p class="text-xs text-slate-500 leading-relaxed">{{ desc }}</p>
+            </div>
+            {% endfor %}
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}
