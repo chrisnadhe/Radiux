@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Customers{% endblock %}
+{% block page_title %}Customers{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-5" x-data="customersPage()">
+
+    {# Page header #}
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-white">Customers</h2>
+            <p class="text-slate-400 text-sm mt-1">Kelola pelanggan RADIUS dan provisioning otomatis</p>
+        </div>
+        <button type="button"
+                hx-get="/ui/customers/form"
+                hx-target="#modal-container"
+                hx-swap="innerHTML"
+                class="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-brand-600/20">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Tambah Customer
+        </button>
+    </div>
+
+    {# Filters #}
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <div class="flex flex-col sm:flex-row gap-3">
+            {# Search #}
+            <div class="relative flex-1">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input type="search"
+                       name="search"
+                       placeholder="Cari username, nama, atau email..."
+                       hx-get="/ui/customers/table"
+                       hx-target="#table-container"
+                       hx-trigger="input changed delay:350ms, search"
+                       hx-include="[name='status_filter']"
+                       class="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors" />
+            </div>
+            {# Status filter #}
+            <select name="status_filter"
+                    hx-get="/ui/customers/table"
+                    hx-target="#table-container"
+                    hx-trigger="change"
+                    hx-include="[name='search']"
+                    class="px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-slate-200 text-sm focus:border-brand-500 transition-colors min-w-[140px]">
+                <option value="">Semua Status</option>
+                <option value="active">Active</option>
+                <option value="suspended">Suspended</option>
+                <option value="expired">Expired</option>
+                <option value="inactive">Inactive</option>
+            </select>
+        </div>
+    </div>
+
+    {# Table container — di-refresh oleh HTMX #}
+    <div id="table-container">
+        {% include "customers/_table.html" %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function customersPage() {
+        return {};
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,163 @@
+{# ── Customer Modal Form ── #}
+{# Variables: customer (optional, None = create mode), packages (list) #}
+
+{% set is_edit = customer is not none %}
+
+<div class="modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+     @click.self="document.getElementById('modal-container').innerHTML = ''"
+     x-data>
+
+    <div class="modal-panel bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+
+        {# Header #}
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">
+                {{ 'Edit Customer' if is_edit else 'Tambah Customer Baru' }}
+            </h3>
+            <button type="button"
+                    @click="document.getElementById('modal-container').innerHTML = ''"
+                    class="p-2 text-slate-500 hover:text-white hover:bg-slate-700 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        {# Form #}
+        <form id="customer-form"
+              {% if is_edit %}
+              hx-patch="/api/v1/customers/{{ customer.id }}"
+              {% else %}
+              hx-post="/api/v1/customers"
+              {% endif %}
+              hx-ext="json-enc"
+              class="px-6 py-5 space-y-4">
+
+            <div id="form-error"></div>
+
+            {# Full Name #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Nama Lengkap <span class="text-red-400">*</span></label>
+                <input type="text" name="full_name" required
+                       value="{{ customer.full_name if is_edit else '' }}"
+                       placeholder="Contoh: Budi Santoso"
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors" />
+            </div>
+
+            {% if not is_edit %}
+            {# RADIUS Username (create only) #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Username RADIUS <span class="text-red-400">*</span></label>
+                <input type="text" name="radius_username" required
+                       placeholder="budi.santoso"
+                       pattern="^[a-zA-Z0-9._@-]+$"
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors font-mono" />
+                <p class="text-xs text-slate-500 mt-1">Hanya huruf, angka, . _ @ - (tidak bisa diubah setelah dibuat)</p>
+            </div>
+
+            {# RADIUS Password #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Password RADIUS <span class="text-red-400">*</span></label>
+                <input type="text" name="radius_password" required
+                       placeholder="Password minimal 6 karakter"
+                       minlength="6"
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors font-mono" />
+            </div>
+
+            {# Tenant ID (required on create) #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Tenant ID <span class="text-red-400">*</span></label>
+                <input type="number" name="tenant_id" required value="1" min="1"
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm focus:border-brand-500 transition-colors" />
+                <p class="text-xs text-slate-500 mt-1">ID tenant/reseller pemilik customer ini</p>
+            </div>
+            {% else %}
+            {# Password (edit — optional) #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Password RADIUS Baru</label>
+                <input type="text" name="radius_password"
+                       placeholder="Kosongkan jika tidak ingin mengubah"
+                       minlength="6"
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors font-mono" />
+            </div>
+            {% endif %}
+
+            {# Package #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Paket Layanan</label>
+                <select name="package_id"
+                        class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm focus:border-brand-500 transition-colors">
+                    <option value="">Tanpa paket</option>
+                    {% for p in packages %}
+                    <option value="{{ p.id }}"
+                            {% if is_edit and customer.package_id == p.id %}selected{% endif %}>
+                        {{ p.name }} ({{ p.speed_down_mbps|round(1) }}/{{ p.speed_up_mbps|round(1) }} Mbps)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# Email #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+                <input type="email" name="email"
+                       value="{{ customer.email if is_edit and customer.email else '' }}"
+                       placeholder="budi@example.com"
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors" />
+            </div>
+
+            {# Phone #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Telepon</label>
+                <input type="text" name="phone"
+                       value="{{ customer.phone if is_edit and customer.phone else '' }}"
+                       placeholder="+62812..."
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors" />
+            </div>
+
+            {% if is_edit %}
+            {# Status (edit only) #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Status</label>
+                <select name="status"
+                        class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm focus:border-brand-500 transition-colors">
+                    <option value="active" {% if customer.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="suspended" {% if customer.status == 'suspended' %}selected{% endif %}>Suspended</option>
+                    <option value="expired" {% if customer.status == 'expired' %}selected{% endif %}>Expired</option>
+                    <option value="inactive" {% if customer.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            {% endif %}
+
+        </form>
+
+        {# Footer actions #}
+        <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-700">
+            <button type="button"
+                    @click="document.getElementById('modal-container').innerHTML = ''"
+                    class="px-4 py-2.5 text-sm font-medium text-slate-300 border border-slate-600 rounded-xl hover:bg-slate-700 transition-colors">
+                Batal
+            </button>
+            <button type="submit" form="customer-form"
+                    class="px-5 py-2.5 text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white rounded-xl transition-colors flex items-center gap-2">
+                <span class="htmx-indicator spinner"></span>
+                {{ 'Simpan Perubahan' if is_edit else 'Buat Customer' }}
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    document.getElementById('customer-form').addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.xhr.status === 200 || evt.detail.xhr.status === 201) {
+            document.getElementById('modal-container').innerHTML = '';
+            htmx.ajax('GET', '/ui/customers/table', {target: '#table-container', swap: 'innerHTML'});
+            showToast('{{ "Customer berhasil diperbarui" if is_edit else "Customer berhasil ditambahkan" }}', 'success');
+        } else {
+            let msg = 'Terjadi kesalahan';
+            try { msg = JSON.parse(evt.detail.xhr.responseText).detail || msg; } catch {}
+            document.getElementById('form-error').innerHTML = `<div class="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm mb-2"><span>${msg}</span></div>`;
+        }
+    });
+</script>

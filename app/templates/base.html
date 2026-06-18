@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full">
+<html lang="id" class="h-full dark">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="{% block meta_description %}Radiux — Web UI modern untuk mengelola FreeRADIUS. AAA, Hotspot, Billing, dan Multi-Reseller untuk ISP.{% endblock %}" />
-    <title>{% block title %}{{ app_name }}{% endblock %} — Radiux</title>
+    <title>{% block title %}Dashboard{% endblock %} — Radiux</title>
 
-    {# Tailwind CSS via CDN (development only) #}
-    {# Production: replace dengan link ke app/static/css/styles.min.css hasil Tailwind CLI build #}
+    {# TailwindCSS via CDN #}
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -28,6 +27,12 @@
                             900: '#1e3a8a',
                             950: '#172554',
                         },
+                        surface: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                            600: '#475569',
+                        }
                     },
                     fontFamily: {
                         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -46,20 +51,97 @@
     {# HTMX #}
     <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
 
+    {# Alpine.js — untuk modal, dropdown, sidebar toggle #}
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    {# Custom CSS #}
+    <link rel="stylesheet" href="/static/css/custom.css" />
+
     {% block head %}{% endblock %}
 </head>
-<body class="h-full bg-slate-950 text-slate-100 font-sans antialiased">
+<body class="h-full bg-slate-950 text-slate-100 font-sans antialiased" x-data="{ sidebarOpen: true, modal: null }">
 
-    {# Navbar placeholder — akan dikembangkan di Phase 1 #}
-    {% block navbar %}{% endblock %}
+    {# ── Layout: Sidebar + Main ── #}
+    <div class="flex h-full">
 
-    {# Main content #}
-    <main id="main-content" class="min-h-full">
-        {% block content %}{% endblock %}
-    </main>
+        {# ── Sidebar ── #}
+        {% include "partials/_sidebar.html" %}
 
-    {# Toast / notification area — akan dikembangkan via HTMX partials #}
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2" aria-live="polite"></div>
+        {# ── Content Area ── #}
+        <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
+
+            {# ── Topbar ── #}
+            {% include "partials/_topbar.html" %}
+
+            {# ── Main Content ── #}
+            <main id="main-content" class="flex-1 overflow-auto p-6">
+                {% block content %}{% endblock %}
+            </main>
+
+        </div>
+    </div>
+
+    {# ── Toast container ── #}
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none" aria-live="polite"></div>
+
+    {# ── Modal container ── #}
+    <div id="modal-container"></div>
+
+    {# ── HTMX config ── #}
+    <script>
+        // Global HTMX event handlers
+        document.addEventListener('htmx:responseError', function(evt) {
+            const status = evt.detail.xhr.status;
+            const msg = status === 401
+                ? 'Sesi expired — silakan login kembali'
+                : status === 403
+                    ? 'Akses ditolak'
+                    : 'Terjadi kesalahan. Coba lagi.';
+            showToast(msg, 'error');
+            if (status === 401) {
+                setTimeout(() => { window.location.href = '/login'; }, 1500);
+            }
+        });
+
+        document.addEventListener('htmx:beforeRequest', function(evt) {
+            // tambahkan CSRF token header jika ada
+        });
+
+        function showToast(message, type = 'success') {
+            const colors = {
+                success: 'bg-emerald-600 border-emerald-500',
+                error:   'bg-red-700 border-red-600',
+                warning: 'bg-amber-600 border-amber-500',
+                info:    'bg-blue-700 border-blue-600',
+            };
+            const icons = {
+                success: '✓',
+                error:   '✕',
+                warning: '⚠',
+                info:    'ℹ',
+            };
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg border text-white text-sm font-medium shadow-xl toast-enter ${colors[type] || colors.info}`;
+            toast.innerHTML = `<span class="flex-shrink-0 text-base">${icons[type] || icons.info}</span><span>${message}</span>`;
+            document.getElementById('toast-container').appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 250);
+            }, 3500);
+        }
+
+        // Listen for custom HX-Trigger events
+        document.body.addEventListener('showSuccess', function(evt) {
+            showToast(evt.detail?.message || 'Berhasil', 'success');
+        });
+        document.body.addEventListener('showError', function(evt) {
+            showToast(evt.detail?.message || 'Terjadi kesalahan', 'error');
+        });
+        document.body.addEventListener('closeModal', function() {
+            document.getElementById('modal-container').innerHTML = '';
+        });
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>

@@ -47,13 +47,15 @@ class TestHealthCheck:
         )
         assert response.status_code == 200
 
-    async def test_root_returns_200(self, async_client: AsyncClient) -> None:
-        """Root URL (/) harus return halaman HTML 200."""
-        response = await async_client.get("/")
+    async def test_root_redirects_to_login(self, async_client: AsyncClient) -> None:
+        """Root URL (/) harus redirect ke /login jika belum autentikasi."""
+        response = await async_client.get("/", follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers["location"] == "/login"
+
+    async def test_login_page_returns_200(self, async_client: AsyncClient) -> None:
+        """Halaman /login harus return HTML 200 dan memuat nama aplikasi."""
+        response = await async_client.get("/login")
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
-
-    async def test_root_contains_app_name(self, async_client: AsyncClient) -> None:
-        """Halaman root harus mengandung nama aplikasi 'Radiux'."""
-        response = await async_client.get("/")
         assert "Radiux" in response.text

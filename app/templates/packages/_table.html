@@ -1,0 +1,113 @@
+{# ── Packages Table Partial ── #}
+
+<div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+
+    {% if packages %}
+    <div class="overflow-x-auto">
+        <table class="data-table w-full text-sm">
+            <thead>
+                <tr class="border-b border-slate-800">
+                    <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nama Paket</th>
+                    <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">Grup RADIUS</th>
+                    <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Kecepatan</th>
+                    <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Kuota</th>
+                    <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Harga</th>
+                    <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden xl:table-cell">Tipe</th>
+                    <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                    <th class="px-5 py-3.5"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+                {% for p in packages %}
+                <tr class="hover:bg-slate-800/40 transition-colors">
+                    <td class="px-5 py-4">
+                        <div>
+                            <p class="font-medium text-slate-200">{{ p.name }}</p>
+                            {% if p.description %}
+                            <p class="text-xs text-slate-500 mt-0.5 truncate max-w-[200px]">{{ p.description }}</p>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-5 py-4 hidden md:table-cell">
+                        <span class="font-mono text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">{{ p.group_name }}</span>
+                    </td>
+                    <td class="px-5 py-4">
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                            <span class="text-slate-200 font-medium">{{ p.speed_down_mbps|round(1) }} Mbps</span>
+                            <span class="text-slate-600 text-xs">/</span>
+                            <svg class="w-3.5 h-3.5 text-slate-500 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                            <span class="text-slate-400 text-xs">{{ p.speed_up_mbps|round(1) }} Mbps</span>
+                        </div>
+                    </td>
+                    <td class="px-5 py-4 text-slate-400 hidden lg:table-cell">
+                        {{ '%d GB'|format(p.quota_mb // 1024) if p.quota_mb else 'Unlimited' }}
+                    </td>
+                    <td class="px-5 py-4 hidden lg:table-cell">
+                        <span class="text-slate-200 font-medium">
+                            {{ 'Rp {:,.0f}'.format(p.price) if p.price else '—' }}
+                        </span>
+                    </td>
+                    <td class="px-5 py-4 hidden xl:table-cell">
+                        <span class="badge
+                            {% if p.package_type == 'prepaid' %}bg-blue-500/15 text-blue-400 border border-blue-500/30
+                            {% else %}bg-purple-500/15 text-purple-400 border border-purple-500/30{% endif %}">
+                            {{ p.package_type }}
+                        </span>
+                    </td>
+                    <td class="px-5 py-4">
+                        {% if p.is_active %}
+                        <span class="badge bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Aktif</span>
+                        {% else %}
+                        <span class="badge bg-slate-500/15 text-slate-400 border border-slate-500/30">Nonaktif</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-5 py-4">
+                        <div class="flex items-center justify-end gap-1">
+                            <button type="button"
+                                    hx-get="/ui/packages/{{ p.id }}/form"
+                                    hx-target="#modal-container"
+                                    hx-swap="innerHTML"
+                                    title="Edit"
+                                    class="p-2 text-slate-500 hover:text-brand-400 hover:bg-slate-800 rounded-lg transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                            <button type="button"
+                                    hx-get="/ui/confirm?title=Hapus+Paket&message=Hapus+paket+%22{{ p.name | urlencode }}%22%3F&action_url=/api/v1/packages/{{ p.id }}&method=delete&target=%23table-container"
+                                    hx-target="#modal-container"
+                                    hx-swap="innerHTML"
+                                    title="Hapus"
+                                    class="p-2 text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="flex flex-col items-center justify-center py-16 text-center">
+        <div class="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mb-4">
+            <svg class="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+        </div>
+        <p class="text-slate-400 font-medium">Belum ada paket</p>
+        <p class="text-slate-600 text-sm mt-1">Buat paket layanan pertama untuk mulai provisioning</p>
+    </div>
+    {% endif %}
+
+</div>

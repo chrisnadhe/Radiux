@@ -87,6 +87,7 @@ select = [
 ]
 ignore = [
     "S104",   # Possible binding to all interfaces (needed for Docker)
+    "B008",   # FastAPI Depends() in function defaults — pattern ini wajib di FastAPI
 ]
 
 [tool.ruff.lint.per-file-ignores]

@@ -1,0 +1,151 @@
+{# ── Package Modal Form ── #}
+{% set is_edit = package is not none %}
+
+<div class="modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+     @click.self="document.getElementById('modal-container').innerHTML = ''"
+     x-data>
+
+    <div class="modal-panel bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">{{ 'Edit Paket' if is_edit else 'Tambah Paket Baru' }}</h3>
+            <button type="button" @click="document.getElementById('modal-container').innerHTML = ''"
+                    class="p-2 text-slate-500 hover:text-white hover:bg-slate-700 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <form id="package-form"
+              {% if is_edit %}hx-patch="/api/v1/packages/{{ package.id }}"
+              {% else %}hx-post="/api/v1/packages"{% endif %}
+              hx-ext="json-enc"
+              class="px-6 py-5 space-y-4">
+
+            <div id="form-error"></div>
+
+            {# Nama #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Nama Paket <span class="text-red-400">*</span></label>
+                <input type="text" name="name" required value="{{ package.name if is_edit else '' }}"
+                       placeholder="Contoh: Paket 10 Mbps"
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors" />
+            </div>
+
+            {% if not is_edit %}
+            {# Group name (create only) #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Nama Grup RADIUS <span class="text-red-400">*</span></label>
+                <input type="text" name="group_name" required
+                       placeholder="paket-10mbps"
+                       pattern="^[a-zA-Z0-9._-]+$"
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors font-mono" />
+                <p class="text-xs text-slate-500 mt-1">Dipakai di radgroupcheck/radgroupreply. Tidak bisa diubah.</p>
+            </div>
+            {% endif %}
+
+            {# Speed #}
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Download (Kbps)</label>
+                    <input type="number" name="speed_down_kbps" min="0"
+                           value="{{ package.speed_down_kbps if is_edit else 0 }}"
+                           placeholder="10000 = 10 Mbps"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Upload (Kbps)</label>
+                    <input type="number" name="speed_up_kbps" min="0"
+                           value="{{ package.speed_up_kbps if is_edit else 0 }}"
+                           placeholder="5000 = 5 Mbps"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors" />
+                </div>
+            </div>
+            <p class="text-xs text-slate-500 -mt-2">0 = Unlimited. Contoh: 10 Mbps = 10000 Kbps</p>
+
+            {# Quota & Validity #}
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Kuota (MB)</label>
+                    <input type="number" name="quota_mb" min="0"
+                           value="{{ package.quota_mb if is_edit else 0 }}"
+                           placeholder="0 = Unlimited"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Validitas (Hari)</label>
+                    <input type="number" name="validity_days" min="0"
+                           value="{{ package.validity_days if is_edit else 30 }}"
+                           placeholder="30"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors" />
+                </div>
+            </div>
+
+            {# Price & Type #}
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Harga (Rp)</label>
+                    <input type="number" name="price" min="0" step="1000"
+                           value="{{ package.price|int if is_edit else 0 }}"
+                           placeholder="100000"
+                           class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Tipe Paket</label>
+                    <select name="package_type"
+                            class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm focus:border-brand-500 transition-colors">
+                        <option value="prepaid" {% if not is_edit or package.package_type == 'prepaid' %}selected{% endif %}>Prepaid</option>
+                        <option value="postpaid" {% if is_edit and package.package_type == 'postpaid' %}selected{% endif %}>Postpaid</option>
+                    </select>
+                </div>
+            </div>
+
+            {# Description #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Deskripsi</label>
+                <textarea name="description" rows="2"
+                          placeholder="Deskripsi opsional untuk paket ini"
+                          class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors resize-none">{{ package.description if is_edit and package.description else '' }}</textarea>
+            </div>
+
+            {% if is_edit %}
+            <div>
+                <label class="flex items-center gap-2.5 cursor-pointer">
+                    <input type="checkbox" name="is_active" value="true"
+                           {% if package.is_active %}checked{% endif %}
+                           class="w-4 h-4 rounded bg-slate-700 border-slate-600 text-brand-500" />
+                    <span class="text-sm text-slate-300">Paket aktif</span>
+                </label>
+            </div>
+            {% endif %}
+
+        </form>
+
+        <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-700">
+            <button type="button" @click="document.getElementById('modal-container').innerHTML = ''"
+                    class="px-4 py-2.5 text-sm font-medium text-slate-300 border border-slate-600 rounded-xl hover:bg-slate-700 transition-colors">
+                Batal
+            </button>
+            <button type="submit" form="package-form"
+                    class="px-5 py-2.5 text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white rounded-xl transition-colors flex items-center gap-2">
+                <span class="htmx-indicator spinner"></span>
+                {{ 'Simpan Perubahan' if is_edit else 'Buat Paket' }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('package-form').addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.xhr.status === 200 || evt.detail.xhr.status === 201) {
+            document.getElementById('modal-container').innerHTML = '';
+            htmx.ajax('GET', '/ui/packages/table', {target: '#table-container', swap: 'innerHTML'});
+            showToast('{{ "Paket berhasil diperbarui" if is_edit else "Paket berhasil ditambahkan" }}', 'success');
+        } else {
+            let msg = 'Terjadi kesalahan';
+            try { msg = JSON.parse(evt.detail.xhr.responseText).detail || msg; } catch {}
+            document.getElementById('form-error').innerHTML = `<div class="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm mb-2"><span>${msg}</span></div>`;
+        }
+    });
+</script>

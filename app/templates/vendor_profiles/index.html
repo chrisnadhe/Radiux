@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Vendor Profiles{% endblock %}
+{% block page_title %}Vendor Profiles{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-5">
+
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-white">Vendor Profiles</h2>
+            <p class="text-slate-400 text-sm mt-1">Profil atribut RADIUS per vendor NAS — menentukan format rate-limit dan mapping bandwidth</p>
+        </div>
+        <button type="button"
+                hx-get="/ui/vendor-profiles/form"
+                hx-target="#modal-container"
+                hx-swap="innerHTML"
+                class="flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-brand-600/20">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Custom Profile
+        </button>
+    </div>
+
+    {# Info banner #}
+    <div class="flex items-start gap-3 px-4 py-3.5 bg-brand-900/30 border border-brand-800/50 rounded-xl">
+        <svg class="w-5 h-5 text-brand-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p class="text-sm text-brand-300">
+            <strong>Profil bawaan</strong> (is_builtin) bisa diaktifkan/nonaktifkan namun tidak bisa dihapus. Untuk vendor baru, buat <strong>custom profile</strong>.
+        </p>
+    </div>
+
+    <div id="table-container">
+        {% include "vendor_profiles/_table.html" %}
+    </div>
+
+</div>
+{% endblock %}

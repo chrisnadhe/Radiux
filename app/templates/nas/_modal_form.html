@@ -1,0 +1,147 @@
+{# ── NAS Modal Form ── #}
+{% set is_edit = nas is not none %}
+
+<div class="modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+     @click.self="document.getElementById('modal-container').innerHTML = ''"
+     x-data>
+
+    <div class="modal-panel bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+            <h3 class="text-lg font-semibold text-white">{{ 'Edit NAS' if is_edit else 'Daftarkan NAS Baru' }}</h3>
+            <button type="button" @click="document.getElementById('modal-container').innerHTML = ''"
+                    class="p-2 text-slate-500 hover:text-white hover:bg-slate-700 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <form id="nas-form"
+              {% if is_edit %}hx-patch="/api/v1/nas/{{ nas.id }}"
+              {% else %}hx-post="/api/v1/nas"{% endif %}
+              hx-ext="json-enc"
+              class="px-6 py-5 space-y-4">
+
+            <div id="form-error"></div>
+
+            {# NAS IP / Hostname #}
+            {% if not is_edit %}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">IP Address / Hostname <span class="text-red-400">*</span></label>
+                <input type="text" name="nasname" required
+                       placeholder="192.168.1.1"
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors font-mono" />
+            </div>
+            {% else %}
+            <div class="px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl">
+                <p class="text-xs text-slate-500 mb-0.5">IP / Hostname</p>
+                <p class="font-mono text-slate-200">{{ nas.nasname }}</p>
+            </div>
+            {% endif %}
+
+            {# Shortname #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Shortname <span class="text-red-400">*</span></label>
+                <input type="text" name="shortname" required value="{{ nas.shortname if is_edit else '' }}"
+                       placeholder="router-01"
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors" />
+            </div>
+
+            {# Shared Secret #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">
+                    Shared Secret {% if not is_edit %}<span class="text-red-400">*</span>{% endif %}
+                </label>
+                <input type="password" name="shared_secret"
+                       {% if not is_edit %}required{% endif %}
+                       placeholder="{{ 'Kosongkan jika tidak ingin mengubah' if is_edit else 'shared secret NAS' }}"
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors font-mono" />
+                <p class="text-xs text-slate-500 mt-1">Akan dienkripsi sebelum disimpan. Tidak pernah ditampilkan kembali.</p>
+            </div>
+
+            {# Vendor Profile #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Vendor Profile</label>
+                <select name="vendor_profile_id"
+                        class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm focus:border-brand-500 transition-colors">
+                    <option value="">Generic / Standar RFC</option>
+                    {% for vp in vendor_profiles %}
+                    <option value="{{ vp.id }}"
+                            {% if is_edit and nas.vendor_profile_id == vp.id %}selected{% endif %}>
+                        {{ vp.name }} ({{ vp.rate_limit_format }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-slate-500 mt-1">Menentukan format rate-limit dan atribut RADIUS yang digunakan</p>
+            </div>
+
+            {# NAS Type #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Tipe NAS</label>
+                <select name="type"
+                        class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm focus:border-brand-500 transition-colors">
+                    <option value="other" {% if not is_edit or nas.nas_type == 'other' %}selected{% endif %}>Other</option>
+                    <option value="cisco" {% if is_edit and nas.nas_type == 'cisco' %}selected{% endif %}>Cisco</option>
+                    <option value="mikrotik" {% if is_edit and nas.nas_type == 'mikrotik' %}selected{% endif %}>Mikrotik</option>
+                    <option value="ubiquiti" {% if is_edit and nas.nas_type == 'ubiquiti' %}selected{% endif %}>Ubiquiti</option>
+                    <option value="huawei" {% if is_edit and nas.nas_type == 'huawei' %}selected{% endif %}>Huawei</option>
+                </select>
+            </div>
+
+            {# Location #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Lokasi</label>
+                <input type="text" name="location" value="{{ nas.location if is_edit and nas.location else '' }}"
+                       placeholder="Contoh: Rack Server Lantai 2"
+                       class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors" />
+            </div>
+
+            {# Description #}
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1.5">Deskripsi</label>
+                <textarea name="description" rows="2"
+                          class="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-xl text-slate-200 text-sm placeholder-slate-500 focus:border-brand-500 transition-colors resize-none"
+                          >{{ nas.description if is_edit and nas.description else '' }}</textarea>
+            </div>
+
+            {% if is_edit %}
+            <div>
+                <label class="flex items-center gap-2.5 cursor-pointer">
+                    <input type="checkbox" name="is_active" value="true"
+                           {% if nas.is_active %}checked{% endif %}
+                           class="w-4 h-4 rounded bg-slate-700 border-slate-600 text-brand-500" />
+                    <span class="text-sm text-slate-300">NAS aktif</span>
+                </label>
+            </div>
+            {% endif %}
+
+        </form>
+
+        <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-700">
+            <button type="button" @click="document.getElementById('modal-container').innerHTML = ''"
+                    class="px-4 py-2.5 text-sm font-medium text-slate-300 border border-slate-600 rounded-xl hover:bg-slate-700 transition-colors">
+                Batal
+            </button>
+            <button type="submit" form="nas-form"
+                    class="px-5 py-2.5 text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white rounded-xl transition-colors flex items-center gap-2">
+                <span class="htmx-indicator spinner"></span>
+                {{ 'Simpan Perubahan' if is_edit else 'Daftarkan NAS' }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('nas-form').addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.xhr.status === 200 || evt.detail.xhr.status === 201) {
+            document.getElementById('modal-container').innerHTML = '';
+            htmx.ajax('GET', '/ui/nas/table', {target: '#table-container', swap: 'innerHTML'});
+            showToast('{{ "NAS berhasil diperbarui" if is_edit else "NAS berhasil didaftarkan" }}', 'success');
+        } else {
+            let msg = 'Terjadi kesalahan';
+            try { msg = JSON.parse(evt.detail.xhr.responseText).detail || msg; } catch {}
+            document.getElementById('form-error').innerHTML = `<div class="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm mb-2"><span>${msg}</span></div>`;
+        }
+    });
+</script>
