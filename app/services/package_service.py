@@ -1,4 +1,10 @@
-"""Package service — CRUD package + sync ke tabel RADIUS group."""
+"""Package service — CRUD package + sync ke tabel RADIUS group.
+
+Phase 2: ``_sync_radius_group()`` sekarang sync atribut rate-limit untuk
+**semua vendor profiles yang aktif** (bukan hanya Mikrotik-Rate-Limit).
+Setiap package RADIUS group akan memiliki entry rate-limit untuk tiap vendor,
+sehingga NAS dari vendor apapun bisa membaca atribut yang sesuai.
+"""
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.packages import Package
 from app.models.radius_core import RadGroupCheck, RadGroupReply
 from app.schemas.packages import PackageCreate, PackageUpdate
+from app.services import vendor_profile_service
 
 
 class PackageNotFoundError(Exception):
@@ -21,30 +28,12 @@ class PackageGroupNameConflictError(Exception):
 # ---------------------------------------------------------------------------
 
 
-def _kbps_to_rate_limit_str(up_kbps: int, down_kbps: int) -> str:
-    """Format Mikrotik-Rate-Limit string dari upload/download Kbps.
-
-    Format: ``{down}k/{up}k`` (sesuai konvensi Mikrotik).
-    Dipakai sebagai placeholder generic — Phase 2 akan handle per-vendor.
-
-    Args:
-        up_kbps: Upload speed Kbps (0 = unlimited).
-        down_kbps: Download speed Kbps (0 = unlimited).
-
-    Returns:
-        Rate limit string, contoh: ``10240k/5120k``.
-
-    """
-    up = f"{up_kbps}k" if up_kbps > 0 else "0"
-    down = f"{down_kbps}k" if down_kbps > 0 else "0"
-    return f"{down}/{up}"
-
-
 async def _sync_radius_group(db: AsyncSession, package: Package) -> None:
-    """Sync atribut bandwidth ke radgroupreply untuk group_name package.
+    """Sync atribut rate-limit ke radgroupreply untuk semua vendor profile aktif.
 
-    Saat ini hanya sync Mikrotik-Rate-Limit (generic placeholder).
-    Phase 2 akan diganti dengan vendor profile abstraction.
+    Untuk setiap NasVendorProfile yang aktif, hitung nilai rate-limit sesuai
+    formatnya dan insert ke radgroupreply. Entry lama dari vendor yang sama
+    dihapus terlebih dahulu sebelum insert baru.
 
     Args:
         db: DB session.
@@ -52,28 +41,42 @@ async def _sync_radius_group(db: AsyncSession, package: Package) -> None:
 
     """
     group = package.group_name
-    rate_limit = _kbps_to_rate_limit_str(package.speed_up_kbps, package.speed_down_kbps)
+    up_kbps = package.speed_up_kbps
+    down_kbps = package.speed_down_kbps
 
-    # Hapus reply lama untuk group ini
-    result = await db.execute(
-        select(RadGroupReply).where(
-            RadGroupReply.groupname == group,
-            RadGroupReply.attribute == "Mikrotik-Rate-Limit",
-        )
-    )
-    for row in result.scalars().all():
-        await db.delete(row)
+    # Ambil semua vendor profiles aktif
+    profiles = await vendor_profile_service.get_all_active_profiles(db)
 
-    # Buat entry baru (hanya jika ada speed limit)
-    if package.speed_up_kbps > 0 or package.speed_down_kbps > 0:
-        db.add(
-            RadGroupReply(
-                groupname=group,
-                attribute="Mikrotik-Rate-Limit",
-                op="=",
-                value=rate_limit,
+    # Kumpulkan semua nama atribut yang dikelola oleh semua vendor aktif
+    # agar cleanup tidak meninggalkan atribut dari vendor yang baru dinonaktifkan
+    all_managed_attrs: set[str] = set()
+    for p in profiles:
+        for attr in vendor_profile_service.get_all_rate_limit_attributes(p):
+            all_managed_attrs.add(attr)
+
+    # Hapus semua entry lama untuk atribut yang dikelola (dari group ini)
+    if all_managed_attrs:
+        result = await db.execute(
+            select(RadGroupReply).where(
+                RadGroupReply.groupname == group,
+                RadGroupReply.attribute.in_(all_managed_attrs),
             )
         )
+        for row in result.scalars().all():
+            await db.delete(row)
+
+    # Insert entry baru untuk setiap vendor aktif
+    for profile in profiles:
+        entries = vendor_profile_service.format_rate_limit(profile, up_kbps, down_kbps)
+        for attr_name, op, value in entries:
+            db.add(
+                RadGroupReply(
+                    groupname=group,
+                    attribute=attr_name,
+                    op=op,
+                    value=value,
+                )
+            )
 
 
 async def _remove_radius_group(db: AsyncSession, group_name: str) -> None:
@@ -92,7 +95,7 @@ async def _remove_radius_group(db: AsyncSession, group_name: str) -> None:
 
 
 async def create_package(db: AsyncSession, data: PackageCreate) -> Package:
-    """Buat package baru dan sync ke RADIUS group.
+    """Buat package baru dan sync ke RADIUS group (semua vendor aktif).
 
     Args:
         db: DB session.
@@ -114,7 +117,7 @@ async def create_package(db: AsyncSession, data: PackageCreate) -> Package:
     db.add(package)
     await db.flush()
 
-    # Sync ke RADIUS group
+    # Sync ke semua vendor profile aktif
     await _sync_radius_group(db, package)
 
     await db.refresh(package)
@@ -194,7 +197,7 @@ async def update_package(
     data: PackageUpdate,
     tenant_id: int | None = None,
 ) -> Package:
-    """Update package dan re-sync RADIUS group.
+    """Update package dan re-sync RADIUS group (semua vendor aktif).
 
     Args:
         db: DB session.
@@ -215,7 +218,7 @@ async def update_package(
         setattr(package, field, value)
 
     await db.flush()
-    # Re-sync RADIUS group attributes
+    # Re-sync RADIUS group attributes untuk semua vendor
     await _sync_radius_group(db, package)
     await db.refresh(package)
     return package

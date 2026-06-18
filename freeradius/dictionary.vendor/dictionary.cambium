@@ -1,0 +1,29 @@
+# FreeRADIUS Vendor Dictionary — Cambium Networks
+#
+# Untuk ePMP, PMP, cnPilot, cnMaestro
+#
+# Referensi:
+# - Cambium Networks RADIUS VSA Guide
+# - Vendor ID: 17713 (Canopy/Cambium)
+
+VENDOR Cambium 17713
+
+BEGIN-VENDOR Cambium
+
+# Rate-limiting attributes (nilai dalam Kbps)
+ATTRIBUTE Cambium-Canopy-Sustained-Uplink-Rate-Limit      1  integer
+ATTRIBUTE Cambium-Canopy-Sustained-Downlink-Rate-Limit    2  integer
+ATTRIBUTE Cambium-Canopy-Burst-Uplink-Rate-Limit          3  integer
+ATTRIBUTE Cambium-Canopy-Burst-Downlink-Rate-Limit        4  integer
+
+# Nama-nama alternatif yang digunakan di beberapa versi firmware:
+ATTRIBUTE Cambium-Canopy-Sustained-Uplink-Rate    5  integer
+ATTRIBUTE Cambium-Canopy-Sustained-Downlink-Rate  6  integer
+ATTRIBUTE Cambium-Canopy-Burst-Uplink-Rate        7  integer
+ATTRIBUTE Cambium-Canopy-Burst-Downlink-Rate      8  integer
+
+# Authentication / Session
+ATTRIBUTE Cambium-Subscriber-Name  20  string
+ATTRIBUTE Cambium-Home-Network     21  string
+
+END-VENDOR Cambium

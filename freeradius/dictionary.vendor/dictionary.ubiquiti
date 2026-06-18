@@ -1,0 +1,24 @@
+# FreeRADIUS Vendor Dictionary — Ubiquiti Networks
+#
+# Untuk UniFi, AirOS, UniFi Access Points
+# Ubiquiti menggunakan atribut WISPr standar untuk rate-limiting
+#
+# Referensi:
+# - WISPr 1.0 Specification (Wi-Fi Alliance)
+# - RFC 2865 (RADIUS)
+
+VENDOR Ubiquiti 41112
+
+BEGIN-VENDOR Ubiquiti
+
+# Ubiquiti tidak menggunakan custom VSA untuk rate-limit standar.
+# Rate-limiting via atribut WISPr (vendor-id 14122) yang sudah ada di
+# dictionary FreeRADIUS default:
+#   WISPr-Bandwidth-Max-Up   (bps)
+#   WISPr-Bandwidth-Max-Down (bps)
+#
+# Atribut Ubiquiti-spesifik (jarang digunakan untuk rate-limit):
+ATTRIBUTE Ubiquiti-Download-Limit   1  integer
+ATTRIBUTE Ubiquiti-Upload-Limit     2  integer
+
+END-VENDOR Ubiquiti

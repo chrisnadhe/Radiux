@@ -11,6 +11,7 @@ Import urutan penting untuk Alembic autogenerate:
 from app.models.admin_users import AdminRole, AdminUser  # noqa: F401
 from app.models.customers import Customer, CustomerStatus  # noqa: F401
 from app.models.nas_ext import NasExt  # noqa: F401
+from app.models.nas_vendor_profiles import NasVendorProfile, RateLimitFormat  # noqa: F401
 from app.models.packages import Package, PackageType  # noqa: F401
 
 # Tabel inti FreeRADIUS (tidak dikelola Alembic — schema.sql)
@@ -32,9 +33,11 @@ __all__ = [
     "AdminUser",
     "Customer",
     "CustomerStatus",
+    "NasVendorProfile",
     "NasExt",
     "Package",
     "PackageType",
+    "RateLimitFormat",
     "Tenant",
     "TenantStatus",
     # FreeRADIUS core (read-only)

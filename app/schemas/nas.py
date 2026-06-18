@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.schemas.vendor_profiles import VendorProfileRead
+
 
 class NasCreateRequest(BaseModel):
     """Payload untuk mendaftarkan NAS baru.
@@ -23,7 +25,8 @@ class NasCreateRequest(BaseModel):
     # Plain text — akan dienkripsi di service layer (AGENT.md rule #3)
     shared_secret: str = Field(..., min_length=1, max_length=60)
     description: str | None = Field(None, max_length=200)
-    vendor: str = Field("generic", max_length=64)
+    # vendor_profile_id = None → pakai profil 'generic' (autentikasi saja)
+    vendor_profile_id: int | None = None
     location: str | None = Field(None, max_length=256)
     tenant_id: int | None = None
 
@@ -39,7 +42,7 @@ class NasUpdateRequest(BaseModel):
     # None berarti tidak ganti shared secret
     shared_secret: str | None = Field(None, min_length=1, max_length=60)
     description: str | None = None
-    vendor: str | None = None
+    vendor_profile_id: int | None = None
     location: str | None = None
     is_active: bool | None = None
 
@@ -55,7 +58,8 @@ class NasRead(BaseModel):
     nas_type: str
     ports: int | None
     description: str | None
-    vendor: str
+    vendor_profile_id: int | None
+    vendor_profile: VendorProfileRead | None = None
     location: str | None
     is_active: bool
     tenant_id: int | None

@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, status
 from app.core.dependencies import CurrentUserId, DbSession
 from app.models.nas_ext import NasExt
 from app.schemas.nas import NasCreateRequest, NasListResponse, NasRead, NasUpdateRequest
+from app.schemas.vendor_profiles import VendorProfileRead
 from app.services import nas_service
 
 router = APIRouter(prefix="/nas", tags=["NAS"])
@@ -15,6 +16,10 @@ def _build_nas_read(nas_core: object, nas_ext: NasExt) -> NasRead:
 
     shared_secret TIDAK disertakan di response (AGENT.md rule #3).
     """
+    vendor_profile_read = None
+    if nas_ext.vendor_profile is not None:
+        vendor_profile_read = VendorProfileRead.model_validate(nas_ext.vendor_profile)
+
     return NasRead(
         id=nas_ext.id,
         nasname=nas_ext.nasname,
@@ -22,7 +27,8 @@ def _build_nas_read(nas_core: object, nas_ext: NasExt) -> NasRead:
         nas_type=getattr(nas_core, "type", "other"),
         ports=getattr(nas_core, "ports", None),
         description=getattr(nas_core, "description", None),
-        vendor=nas_ext.vendor,
+        vendor_profile_id=nas_ext.vendor_profile_id,
+        vendor_profile=vendor_profile_read,
         location=nas_ext.location,
         is_active=nas_ext.is_active,
         tenant_id=nas_ext.tenant_id,

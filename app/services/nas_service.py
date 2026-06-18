@@ -115,7 +115,7 @@ async def create_nas(db: AsyncSession, data: NasCreateRequest) -> tuple[NasCore,
 
     nas_ext = NasExt(
         nasname=data.nasname,
-        vendor=data.vendor,
+        vendor_profile_id=data.vendor_profile_id,
         location=data.location,
         tenant_id=data.tenant_id,
         is_active=True,
@@ -236,8 +236,8 @@ async def update_nas(
         # Enkripsi secret baru (AGENT.md rule #3)
         nas_core.secret = encrypt_secret(data.shared_secret)
 
-    if data.vendor is not None:
-        nas_ext.vendor = data.vendor
+    if data.vendor_profile_id is not None:
+        nas_ext.vendor_profile_id = data.vendor_profile_id
     if data.location is not None:
         nas_ext.location = data.location
     if data.is_active is not None:
