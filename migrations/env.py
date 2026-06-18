@@ -15,13 +15,23 @@ from app.core.database import Base
 # Import semua models agar Alembic dapat mendeteksi perubahan skema.
 # Tambahkan import baru di sini setiap kali model baru dibuat.
 # ---------------------------------------------------------------------------
-# Phase 1+:
-# from app.models import admin_users, customers, packages  # noqa: F401
-# Phase 2+:
-# from app.models import nas_vendor_profiles  # noqa: F401
-# Phase 5+:
-# from app.models import vouchers, invoices, payments  # noqa: F401
-# ---------------------------------------------------------------------------
+# Phase 1 models:
+from app.models import (  # noqa: F401
+    AdminUser,
+    Customer,
+    # FreeRADIUS core (excluded via _include_name filter below)
+    NasCore,
+    NasExt,
+    Package,
+    RadAcct,
+    RadCheck,
+    RadGroupCheck,
+    RadGroupReply,
+    RadPostAuth,
+    RadReply,
+    RadUserGroup,
+    Tenant,
+)
 
 # ---------------------------------------------------------------------------
 # Setup
