@@ -9,6 +9,7 @@ import base64
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.core.config import get_settings
 from app.models.nas_ext import NasExt
@@ -125,7 +126,7 @@ async def create_nas(db: AsyncSession, data: NasCreateRequest) -> tuple[NasCore,
     await db.refresh(nas_core)
     await db.refresh(nas_ext)
 
-    return nas_core, nas_ext
+    return await get_nas(db, nas_ext.id)
 
 
 async def get_nas(
@@ -147,7 +148,7 @@ async def get_nas(
         NasNotFoundError: Jika tidak ditemukan.
 
     """
-    query = select(NasExt).where(NasExt.id == nas_id)
+    query = select(NasExt).where(NasExt.id == nas_id).options(joinedload(NasExt.vendor_profile))
     if tenant_id is not None:
         query = query.where(NasExt.tenant_id == tenant_id)
 
@@ -178,7 +179,7 @@ async def list_nas(
         Tuple (list of (NasCore, NasExt) tuples, total count).
 
     """
-    query = select(NasExt)
+    query = select(NasExt).options(joinedload(NasExt.vendor_profile))
     count_query = select(func.count()).select_from(NasExt)
 
     if tenant_id is not None:
@@ -246,7 +247,7 @@ async def update_nas(
     await db.flush()
     await db.refresh(nas_core)
     await db.refresh(nas_ext)
-    return nas_core, nas_ext
+    return await get_nas(db, nas_id, tenant_id)
 
 
 async def delete_nas(

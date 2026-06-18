@@ -138,7 +138,7 @@ class NasCore(Base):
     ports: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # CATATAN: kolom secret menyimpan shared secret TERENKRIPSI (bukan plaintext)
     # Lihat AGENT.md rule #3 dan app/core/security.py encrypt_secret()
-    secret: Mapped[str] = mapped_column(String(60), nullable=False, default="secret")
+    secret: Mapped[str] = mapped_column(String(255), nullable=False, default="secret")
     server: Mapped[str | None] = mapped_column(String(64), nullable=True)
     community: Mapped[str | None] = mapped_column(String(50), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True, default="RADIUS Client")

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.vendor_profiles import VendorProfileRead
 
@@ -32,6 +32,13 @@ class NasCreateRequest(BaseModel):
 
     model_config = {"populate_by_name": True}
 
+    @field_validator("vendor_profile_id", "ports", mode="before")
+    @classmethod
+    def empty_to_none(cls, v: object) -> object:
+        if v == "":
+            return None
+        return v
+
 
 class NasUpdateRequest(BaseModel):
     """Payload update NAS — semua field opsional."""
@@ -47,6 +54,13 @@ class NasUpdateRequest(BaseModel):
     is_active: bool | None = None
 
     model_config = {"populate_by_name": True}
+
+    @field_validator("vendor_profile_id", "ports", "shared_secret", mode="before")
+    @classmethod
+    def empty_to_none(cls, v: object) -> object:
+        if v == "":
+            return None
+        return v
 
 
 class NasRead(BaseModel):
