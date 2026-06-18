@@ -13,6 +13,12 @@ from app.models.customers import Customer, CustomerStatus  # noqa: F401
 from app.models.invoices import Invoice, InvoiceStatus  # noqa: F401
 from app.models.nas_ext import NasExt  # noqa: F401
 from app.models.nas_vendor_profiles import NasVendorProfile, RateLimitFormat  # noqa: F401
+from app.models.notifications import (  # noqa: F401
+    Notification,
+    NotificationChannel,
+    NotificationEventType,
+    NotificationStatus,
+)
 from app.models.packages import Package, PackageType  # noqa: F401
 from app.models.payments import Payment, PaymentMethod  # noqa: F401
 
@@ -39,6 +45,10 @@ __all__ = [
     "CustomerStatus",
     "NasVendorProfile",
     "NasExt",
+    "Notification",
+    "NotificationChannel",
+    "NotificationEventType",
+    "NotificationStatus",
     "Package",
     "PackageType",
     "RateLimitFormat",

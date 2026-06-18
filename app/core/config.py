@@ -76,6 +76,32 @@ class Settings(BaseSettings):
         "Web UI modern untuk mengelola FreeRADIUS — AAA, Hotspot, Billing/Voucher, dan Multi-Reseller untuk ISP"
     )
 
+    # -----------------------------------------------------------------------
+    # Notifikasi — Telegram (aktif)
+    # -----------------------------------------------------------------------
+    # Isi via .env untuk mengaktifkan notifikasi Telegram.
+    # Jika kosong, channel Telegram di-skip (tidak crash).
+    telegram_bot_token: str = ""  # noqa: S105
+    telegram_admin_chat_id: str = ""  # Chat ID superadmin untuk alert sistem
+
+    # Threshold saldo reseller — di bawah nilai ini, notifikasi low-balance dikirim (Rupiah)
+    notification_low_balance_threshold: float = 100000.0
+
+    # -----------------------------------------------------------------------
+    # Notifikasi — Email / SMTP (belum aktif, siap dikonfigurasi)
+    # -----------------------------------------------------------------------
+    # smtp_host: str = ""
+    # smtp_port: int = 587
+    # smtp_user: str = ""
+    # smtp_password: str = ""
+    # smtp_from: str = "noreply@radiux.local"
+
+    # -----------------------------------------------------------------------
+    # Notifikasi — WhatsApp (belum aktif, siap dikonfigurasi)
+    # -----------------------------------------------------------------------
+    # wa_provider: str = ""    # "fonnte" | "twilio" | "waba"
+    # wa_api_token: str = ""
+
     @field_validator("allowed_hosts", mode="before")
     @classmethod
     def parse_allowed_hosts(cls, v: str | list[str]) -> list[str]:

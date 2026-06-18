@@ -621,3 +621,34 @@ async def reports_revenue_page(
             trend_payment=[t["payment_amount"] for t in trend],
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# Page: Notifications (Phase 8)
+# ---------------------------------------------------------------------------
+@app.get("/notifications", response_class=HTMLResponse, include_in_schema=False)
+async def notifications_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """Halaman riwayat notifikasi."""
+    access_token = request.cookies.get("access_token")
+    user = await _resolve_user(access_token, db)
+    if user is None:
+        return RedirectResponse(url="/login", status_code=302)  # type: ignore[return-value]
+
+    from app.services import notification_service
+
+    tenant_id = None if user.is_superadmin else user.tenant_id
+    notifs = await notification_service.get_notifications(db, tenant_id=tenant_id, limit=50)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="notifications/index.html",
+        context=_base_ctx(
+            request,
+            user,
+            active_page="notifications",
+            notifications=notifs,
+        ),
+    )

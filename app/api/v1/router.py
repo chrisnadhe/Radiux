@@ -9,6 +9,7 @@ from app.api.v1 import (
     customers,
     monitoring,
     nas,
+    notifications,
     packages,
     reports,
     sessions,
@@ -48,3 +49,8 @@ router.include_router(admin_users.router, tags=["Admin Users"])
 # Domain routers — Phase 7: Reporting & Dashboard
 # ---------------------------------------------------------------------------
 router.include_router(reports.router, tags=["Reports"])
+
+# ---------------------------------------------------------------------------
+# Domain routers — Phase 8: Notifications
+# ---------------------------------------------------------------------------
+router.include_router(notifications.router, tags=["Notifications"])

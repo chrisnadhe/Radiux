@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
+from app.jobs.notification_sender import check_expiry_and_notify, check_low_balance_and_notify
 from app.models.customers import Customer, CustomerStatus
 from app.models.invoices import Invoice, InvoiceStatus
 from app.models.radius_core import RadAcct
@@ -68,6 +69,15 @@ def start_scheduler() -> None:
     if not scheduler.running:
         # Tambahkan job, misal berjalan setiap 1 jam
         scheduler.add_job(auto_suspend_job, "interval", hours=1, id="auto_suspend_job", replace_existing=True)
+
+        # Job notifikasi (Phase 8)
+        scheduler.add_job(
+            check_expiry_and_notify, "cron", hour=8, minute=0, id="notify_expiry_job", replace_existing=True
+        )  # Tiap jam 8 pagi
+        scheduler.add_job(
+            check_low_balance_and_notify, "interval", hours=4, id="notify_low_balance_job", replace_existing=True
+        )  # Tiap 4 jam
+
         scheduler.start()
         logger.info("APScheduler berhasil dijalankan.")
 
