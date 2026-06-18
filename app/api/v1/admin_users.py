@@ -2,7 +2,7 @@
 
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
@@ -21,6 +21,13 @@ class AdminUserCreate(BaseModel):
     full_name: str | None = None
     role: AdminRole
     tenant_id: int | None = None
+    
+    @field_validator("tenant_id", "full_name", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v: Any) -> Any:
+        if v == "":
+            return None
+        return v
 
 class AdminUserUpdate(BaseModel):
     email: EmailStr | None = None
@@ -29,6 +36,13 @@ class AdminUserUpdate(BaseModel):
     role: AdminRole | None = None
     tenant_id: int | None = None
     is_active: bool | None = None
+    
+    @field_validator("tenant_id", "full_name", "password", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v: Any) -> Any:
+        if v == "":
+            return None
+        return v
 
 class TenantResponse(BaseModel):
     id: int
