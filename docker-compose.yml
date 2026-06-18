@@ -1,0 +1,119 @@
+# ===========================================================================
+# docker-compose.yml — Radiux (Production baseline)
+# Untuk development, tambahkan overrides via docker-compose.override.yml
+#
+# Usage:
+#   docker compose up -d --build          # development (+ override.yml otomatis)
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# ===========================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — database bersama Radiux & FreeRADIUS
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:18-bookworm
+    container_name: radiux_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-radiux_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi di .env}
+      POSTGRES_DB: ${POSTGRES_DB:-radiux_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Jalankan schema FreeRADIUS otomatis saat container pertama kali dibuat
+      - ./freeradius/mods-config/sql/main/postgresql/schema.sql:/docker-entrypoint-initdb.d/01_freeradius_schema.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-radiux_user} -d ${POSTGRES_DB:-radiux_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - radiux_net
+
+  # ---------------------------------------------------------------------------
+  # Redis — cache & job queue (skeleton, belum di-wire ke app di Phase 0)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: radiux_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - radiux_net
+
+  # ---------------------------------------------------------------------------
+  # FreeRADIUS 3.2.x — RADIUS server dengan SQL backend
+  # ---------------------------------------------------------------------------
+  freeradius:
+    build:
+      context: .
+      dockerfile: docker/freeradius/Dockerfile
+    container_name: radiux_freeradius
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-radiux_db}
+      POSTGRES_USER: ${POSTGRES_USER:-radiux_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi di .env}
+    ports:
+      - "1812:1812/udp"
+      - "1813:1813/udp"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - radiux_net
+
+  # ---------------------------------------------------------------------------
+  # Radiux App — FastAPI
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    container_name: radiux_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - radiux_net
+
+# ---------------------------------------------------------------------------
+# Volumes
+# ---------------------------------------------------------------------------
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+networks:
+  radiux_net:
+    driver: bridge

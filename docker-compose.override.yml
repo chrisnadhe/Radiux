@@ -1,0 +1,37 @@
+# ===========================================================================
+# docker-compose.override.yml — Development overrides
+# File ini otomatis di-merge dengan docker-compose.yml saat development.
+# JANGAN gunakan di production!
+# ===========================================================================
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+      # Target builder stage untuk dev (ada uv, lebih cepat iterasi)
+      target: builder
+    # Override CMD: aktifkan hot-reload dan bind mount source code
+    command: >
+      python -m uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-dir app
+    volumes:
+      # Bind mount source code agar perubahan langsung terdeteksi tanpa rebuild
+      - ./app:/app/app
+      - ./migrations:/app/migrations
+      - ./alembic.ini:/app/alembic.ini
+    environment:
+      DEBUG: "true"
+      APP_ENV: development
+    # Expose port Debugger jika dipakai (opsional)
+    # ports:
+    #   - "5678:5678"   # debugpy
+
+  # FreeRADIUS debug mode di development
+  freeradius:
+    # Override ke debug mode untuk melihat log detail autentikasi
+    command: freeradius -X -l stdout
