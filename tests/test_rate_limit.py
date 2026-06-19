@@ -21,7 +21,7 @@ def _make_redis_mock(counter_value: int) -> AsyncMock:
     redis_conn = AsyncMock()
     redis_conn.incr = AsyncMock(return_value=counter_value)
     redis_conn.expire = AsyncMock()
-    redis_conn.close = AsyncMock()
+    redis_conn.aclose = AsyncMock()
     return redis_conn
 
 
@@ -89,7 +89,7 @@ class TestRateLimiter:
             with pytest.raises(HTTPException):
                 await limiter(request)
 
-        mock_redis.close.assert_awaited_once()
+        mock_redis.aclose.assert_awaited_once()
 
     async def test_key_includes_path_and_ip(self) -> None:
         """Key Redis harus berisi path dan IP agar bisa membedakan endpoint."""
