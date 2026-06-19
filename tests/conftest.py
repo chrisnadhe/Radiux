@@ -42,8 +42,23 @@ async def async_client() -> AsyncClient:
 
     Tidak perlu server berjalan — langsung test ASGI app.
     """
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://testserver",
-    ) as client:
-        yield client
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    mock_redis = AsyncMock()
+    mock_redis.incr = AsyncMock(return_value=1)
+    mock_redis.expire = AsyncMock()
+    mock_redis.close = AsyncMock()
+    mock_redis.aclose = AsyncMock()
+    mock_redis.setex = AsyncMock()
+    mock_redis.get = AsyncMock(return_value=None)
+    mock_redis.delete = AsyncMock()
+
+    with (
+        patch("app.core.rate_limit.redis.from_url", return_value=mock_redis),
+        patch("app.api.v1.auth.redis.from_url", return_value=mock_redis),
+    ):
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            yield client
