@@ -42,7 +42,7 @@ async def async_client() -> AsyncClient:
 
     Tidak perlu server berjalan — langsung test ASGI app.
     """
-    from unittest.mock import AsyncMock, MagicMock, patch
+    from unittest.mock import AsyncMock, patch
 
     mock_redis = AsyncMock()
     mock_redis.incr = AsyncMock(return_value=1)
