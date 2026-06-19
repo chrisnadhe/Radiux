@@ -24,9 +24,7 @@ def upgrade() -> None:
         "VALUES (1, 'Main ISP', 'main-isp', 'active', true, NOW(), NOW()) "
         "ON CONFLICT DO NOTHING;"
     )
-    op.execute(
-        "SELECT setval('tenants_id_seq', COALESCE((SELECT MAX(id) FROM tenants), 1), true);"
-    )
+    op.execute("SELECT setval('tenants_id_seq', COALESCE((SELECT MAX(id) FROM tenants), 1), true);")
 
 
 def downgrade() -> None:
