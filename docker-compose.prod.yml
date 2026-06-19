@@ -59,10 +59,12 @@ services:
       - "443:443"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
+      - nginx_ssl:/etc/nginx/ssl
     depends_on:
-      - app
+      ssl-init:
+        condition: service_completed_successfully
+      app:
+        condition: service_started
     networks:
       - radiux_net
     logging:
@@ -72,23 +74,21 @@ services:
         max-file: "3"
 
   # ---------------------------------------------------------------------------
-  # Certbot — Auto renew Let's Encrypt SSL
+  # SSL Init — Generate Self-Signed Cert otomatis jika belum ada
   # ---------------------------------------------------------------------------
-  certbot:
-    image: certbot/certbot
-    container_name: radiux_certbot
-    restart: unless-stopped
+  ssl-init:
+    image: alpine/openssl
+    container_name: radiux_ssl_init
     volumes:
-      - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-    networks:
-      - radiux_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - nginx_ssl:/etc/nginx/ssl
+    command: >
+      sh -c "
+      if [ ! -f /etc/nginx/ssl/nginx.crt ]; then
+        echo 'Generating self-signed certificate...';
+        openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout /etc/nginx/ssl/nginx.key -out /etc/nginx/ssl/nginx.crt -subj '/C=ID/ST=Local/L=Local/O=Radiux/CN=localhost';
+      else
+        echo 'Certificate already exists.';
+      fi"
 
   # ---------------------------------------------------------------------------
   # Prometheus — Metrics Collection
@@ -131,7 +131,6 @@ services:
         max-file: "3"
 
 volumes:
-  certbot_conf:
-  certbot_www:
+  nginx_ssl:
   prometheus_data:
   grafana_data:
