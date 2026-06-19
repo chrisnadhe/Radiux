@@ -7,6 +7,7 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
+
 class RateLimiter:
     """Dependency untuk Rate Limiting sederhana."""
 

@@ -531,6 +531,7 @@ async def audit_logs_page(
     user = await _resolve_user(access_token, db)
     if not user:
         from app.ui.routes import _redirect_login
+
         return _redirect_login()
     if not user.is_superadmin:
         return RedirectResponse(url="/", status_code=302)

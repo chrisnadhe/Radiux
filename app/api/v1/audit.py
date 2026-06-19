@@ -27,6 +27,7 @@ async def list_audit_logs(
 
     # Hitung total
     from sqlalchemy import func
+
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = await db.scalar(count_stmt) or 0
 

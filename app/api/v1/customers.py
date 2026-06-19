@@ -78,7 +78,7 @@ async def create_customer(
             user_id=user.id,
             table_name="customers",
             record_id=customer.id,
-            details={"username": data.username, "tenant_id": data.tenant_id},
+            details={"username": data.radius_username, "tenant_id": data.tenant_id},
         )
     except customer_service.CustomerUsernameConflictError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
@@ -117,7 +117,7 @@ async def update_customer(
             user_id=user.id,
             table_name="customers",
             record_id=customer.id,
-            details={"username": customer.username},
+            details={"username": customer.radius_username},
         )
     except customer_service.CustomerNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e

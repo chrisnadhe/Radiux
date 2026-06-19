@@ -46,9 +46,7 @@ class TestRecordPayment:
         # Tidak ada invoice dan customer yang suspended
         db.scalar = AsyncMock(return_value=None)
 
-        await billing_service.record_payment(
-            db, customer_id=1, amount=150_000, tenant_id=2
-        )
+        await billing_service.record_payment(db, customer_id=1, amount=150_000, tenant_id=2)
         db.add.assert_called()
         db.commit.assert_awaited_once()
 
@@ -61,9 +59,7 @@ class TestRecordPayment:
         # Kembalikan invoice saat query invoice, customer saat query customer
         db.scalar = AsyncMock(side_effect=[invoice, customer])
 
-        await billing_service.record_payment(
-            db, customer_id=1, amount=150_000, tenant_id=2, invoice_id=10
-        )
+        await billing_service.record_payment(db, customer_id=1, amount=150_000, tenant_id=2, invoice_id=10)
         assert invoice.status == InvoiceStatus.PAID
         assert invoice.paid_at is not None
 
@@ -74,9 +70,7 @@ class TestRecordPayment:
         customer = _make_customer(CustomerStatus.ACTIVE)
         db.scalar = AsyncMock(side_effect=[invoice, customer])
 
-        await billing_service.record_payment(
-            db, customer_id=1, amount=150_000, tenant_id=2, invoice_id=10
-        )
+        await billing_service.record_payment(db, customer_id=1, amount=150_000, tenant_id=2, invoice_id=10)
         # Status tetap PAID, bukan berubah
         assert invoice.status == InvoiceStatus.PAID
 
@@ -87,9 +81,7 @@ class TestRecordPayment:
         # Tidak ada invoice — hanya ada customer
         db.scalar = AsyncMock(side_effect=[customer])
 
-        await billing_service.record_payment(
-            db, customer_id=1, amount=50_000, tenant_id=2
-        )
+        await billing_service.record_payment(db, customer_id=1, amount=50_000, tenant_id=2)
         assert customer.status == CustomerStatus.ACTIVE
 
     async def test_active_customer_status_unchanged(self) -> None:
@@ -98,9 +90,7 @@ class TestRecordPayment:
         customer = _make_customer(CustomerStatus.ACTIVE)
         db.scalar = AsyncMock(side_effect=[customer])
 
-        await billing_service.record_payment(
-            db, customer_id=1, amount=50_000, tenant_id=2
-        )
+        await billing_service.record_payment(db, customer_id=1, amount=50_000, tenant_id=2)
         assert customer.status == CustomerStatus.ACTIVE
 
 

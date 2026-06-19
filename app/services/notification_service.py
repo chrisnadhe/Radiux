@@ -83,11 +83,13 @@ async def send_notification(
 
         if recipient_type == "customer" and recipient_id:
             from app.models.customers import Customer
+
             cust = await db.scalar(select(Customer).where(Customer.id == recipient_id))
             if cust and cust.telegram_chat_id:
                 chat_id = cust.telegram_chat_id
         elif recipient_type == "tenant" and recipient_id:
             from app.models.tenants import Tenant
+
             tenant_obj = await db.scalar(select(Tenant).where(Tenant.id == recipient_id))
             if tenant_obj and tenant_obj.telegram_chat_id:
                 chat_id = tenant_obj.telegram_chat_id

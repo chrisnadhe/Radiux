@@ -12,12 +12,17 @@ if sys.platform == "win32":
 
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+from dotenv import load_dotenv
+
+# Load real .env for all tests to ensure settings match docker-compose
+load_dotenv(override=True)
+
 # Set env vars minimal yang dibutuhkan Settings sebelum import app
 _TEST_SECRET = "test-secret-key-panjang-untuk-pytest-12345678901234567890"  # noqa: S105
 os.environ.setdefault("SECRET_KEY", _TEST_SECRET)
-os.environ.setdefault("POSTGRES_PASSWORD", "test_password")  # noqa: S105
 os.environ.setdefault("APP_ENV", "test")
 os.environ.setdefault("DEBUG", "true")
+os.environ.setdefault("POSTGRES_HOST", "127.0.0.1")
 
 import pytest  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402

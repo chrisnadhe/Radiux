@@ -6,10 +6,10 @@ from datetime import timedelta
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from app.core.rate_limit import RateLimiter
 
 from app.core.config import get_settings
 from app.core.dependencies import CurrentUserId, DbSession
+from app.core.rate_limit import RateLimiter
 from app.core.security import create_access_token
 from app.schemas.auth import LoginRequest, MeResponse, OtpVerifyRequest, TokenResponse
 from app.services import audit_service, auth_service
@@ -118,10 +118,11 @@ async def verify_otp(data: OtpVerifyRequest, response: Response, db: DbSession) 
     from sqlalchemy import select
 
     from app.models.admin_users import AdminUser
+
     user = await db.scalar(select(AdminUser).where(AdminUser.username == data.username))
 
     if not user or not user.is_active:
-         raise HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User tidak ditemukan atau dinonaktifkan.",
         )
@@ -145,6 +146,7 @@ async def verify_otp(data: OtpVerifyRequest, response: Response, db: DbSession) 
     await audit_service.log_action(db, "LOGIN_SUCCESS_2FA", user.id, "admin_users", user.id)
 
     return TokenResponse(message="Login berhasil", username=user.username, role=user.role.value, requires_otp=False)
+
 
 @router.post(
     "/logout",

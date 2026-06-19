@@ -461,6 +461,7 @@ async def tenant_form_edit(
     from sqlalchemy import select
 
     from app.models.tenants import Tenant
+
     tenant = await db.scalar(select(Tenant).where(Tenant.id == tenant_id))
     if not tenant:
         return HTMLResponse("Tenant not found", status_code=404)
