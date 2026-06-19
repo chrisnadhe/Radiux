@@ -28,14 +28,14 @@ if sys.platform == "win32":
 
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker
+import pytest  # noqa: E402
+from httpx import ASGITransport, AsyncClient  # noqa: E402
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker  # noqa: E402
 
-from app.core.database import engine
-from app.main import app
-from app.models.admin_users import AdminRole, AdminUser
-from app.models.tenants import Tenant, TenantStatus
+from app.core.database import engine  # noqa: E402
+from app.main import app  # noqa: E402
+from app.models.admin_users import AdminRole, AdminUser  # noqa: E402
+from app.models.tenants import Tenant, TenantStatus  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Session dengan ROLLBACK per-test (isolasi data)
